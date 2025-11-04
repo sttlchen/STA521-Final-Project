@@ -13,5 +13,5 @@ nepal <- read.csv("nepal_dat.csv")
 ```
 
 ```{r}
-summary(nepal)
+
 ```
