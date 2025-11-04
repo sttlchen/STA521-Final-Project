@@ -1,0 +1,17 @@
+---
+title: "Project"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+nepal <- read.csv("nepal_dat.csv")
+```
+
+```{r}
+summary(nepal)
+```
