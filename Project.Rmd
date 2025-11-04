@@ -7,26 +7,57 @@ date: "`r Sys.Date()`"
 ```{r}
 # Load libraries
 library(tidyverse)
-library(caret)
-
-# Load your data
-nepal <- read.csv("nepal_dat.csv")
-
-# Convert character or string columns to factors
-categorical_vars <- c(
-  "land_surface_condition", "foundation_type", "roof_type", 
-  "ground_floor_type", "other_floor_type", "position", 
-  "plan_configuration", "legal_ownership_status"
-)
-nepal[categorical_vars] <- lapply(nepal[categorical_vars], as.factor)
-
-# Convert damage_grade to factor (for classification)
-nepal$damage_grade <- as.factor(nepal$damage_grade)
-
-# Check structure
-str(nepal)
-
 ```
+
+```{r}
+# Load data
+nepal = read_csv("nepal_dat.csv")
+```
+
+```{r}
+# check for NAs
+colSums(is.na(nepal))
+```
+
+```{r}
+# check for column classes and split them
+data.frame(
+  class = sapply(nepal, class)
+)
+
+nepal_num = nepal |>
+  select(where(is.numeric))
+nepal_char= nepal |>
+  select(where(is.character))
+```
+
+```{r}
+# Numeric Plots
+nepal_num_long <- nepal_num %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "variable",
+    values_to = "value"
+  )
+
+# Create boxplots for each numeric variable
+ggplot(nepal_num_long, aes(x = variable, y = value)) +
+  geom_boxplot(fill = "skyblue", color = "darkblue") +
+  facet_wrap(~ variable, scales = "free") +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.text = element_text(size = 5),
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+  ) +
+  labs(
+    title = "Boxplots of Numeric Variables in Nepal Dataset",
+    x = "",
+    y = "Value"
+  )
+```
+
+# GLM
 
 ```{r}
 library(MASS)
@@ -46,7 +77,6 @@ summary(ord_model)
 exp(coef(ord_model)) # odds ratios
 
 ```
-
 
 ```{r}
 # Predicted values
