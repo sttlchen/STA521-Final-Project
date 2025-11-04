@@ -4,14 +4,55 @@ output: html_document
 date: "`r Sys.Date()`"
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 ```{r}
+# Load libraries
+library(tidyverse)
+library(caret)
+
+# Load your data
 nepal <- read.csv("nepal_dat.csv")
+
+# Convert character or string columns to factors
+categorical_vars <- c(
+  "land_surface_condition", "foundation_type", "roof_type", 
+  "ground_floor_type", "other_floor_type", "position", 
+  "plan_configuration", "legal_ownership_status"
+)
+nepal[categorical_vars] <- lapply(nepal[categorical_vars], as.factor)
+
+# Convert damage_grade to factor (for classification)
+nepal$damage_grade <- as.factor(nepal$damage_grade)
+
+# Check structure
+str(nepal)
+
 ```
 
 ```{r}
+library(MASS)
+
+ord_model <- polr(
+  damage_grade ~ geo_level_1_id + geo_level_2_id + geo_level_3_id +
+    count_floors_pre_eq + age + area_percentage + height_percentage +
+    land_surface_condition + foundation_type + roof_type +
+    ground_floor_type + other_floor_type + position + plan_configuration +
+    has_superstructure_cement_mortar_brick + has_superstructure_rc_engineered +
+    has_superstructure_mud_mortar_stone + count_families + has_secondary_use,
+  data = nepal,
+  Hess = TRUE
+)
+
+summary(ord_model)
+exp(coef(ord_model)) # odds ratios
+
+```
+
+
+```{r}
+# Predicted values
+preds <- predict(ord_model, newdata = nepal)
+
+# Confusion matrix
+confusionMatrix(preds, nepal$damage_grade)
 
 ```
