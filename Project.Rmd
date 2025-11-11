@@ -7,11 +7,13 @@ date: "`r Sys.Date()`"
 ```{r}
 # Load libraries
 library(tidyverse)
+library(forcats)
 ```
 
 ```{r}
 # Load data
-nepal = read_csv("nepal_dat.csv")
+nepal <- readr::read_csv("nepal_dat.csv")
+dim(nepal); glimpse(nepal)
 ```
 
 ```{r}
@@ -20,67 +22,170 @@ colSums(is.na(nepal))
 ```
 
 ```{r}
-# check for column classes and split them
 data.frame(
   class = sapply(nepal, class)
 )
 
-nepal_num = nepal |>
-  select(where(is.numeric))
-nepal_char= nepal |>
-  select(where(is.character))
 ```
 
 ```{r}
-# Numeric Plots
-nepal_num_long <- nepal_num %>%
-  pivot_longer(
-    cols = everything(),
-    names_to = "variable",
-    values_to = "value"
-  )
+nepal_chr <- nepal |> mutate(across(everything(), as.character))
+str(nepal_chr, strict.width = "cut", width = 80)
 
-# Create boxplots for each numeric variable
-ggplot(nepal_num_long, aes(x = variable, y = value)) +
-  geom_boxplot(fill = "skyblue", color = "darkblue") +
-  facet_wrap(~ variable, scales = "free") +
-  theme(
-    axis.text.x = element_blank(),
-    axis.ticks.x = element_blank(),
-    strip.text = element_text(size = 5),
-    plot.title = element_text(face = "bold")
-  ) +
-  labs(
-    title = "Boxplots of Numeric Variables in Nepal Dataset",
-    x = "",
-    y = "Value"
-  )
 ```
 
 ```{r}
-# Character Plots
-# Convert to long format
-nepal_char_long <- nepal_char %>%
-  pivot_longer(
-    cols = everything(),
-    names_to = "variable",
-    values_to = "category"
+numeric_cols <- c(
+  "age",
+  "area_percentage",
+  "height_percentage",
+  "count_floors_pre_eq",
+  "count_families", 
+  "geo_level_1_id", 
+  "geo_level_2_id", 
+  "geo_level_3_id"
+)
+numeric_cols <- intersect(numeric_cols, names(nepal_chr))  # keep only those present
+numeric_cols
+
+```
+
+
+```{r}
+target_col <- "damage_grade"
+all_cols <- names(nepal_chr)
+categorical_cols <- setdiff(all_cols, c(numeric_cols, target_col))
+categorical_cols
+
+```
+
+
+```{r}
+nepal <- nepal_chr |>
+  mutate(
+    across(all_of(numeric_cols), ~ readr::parse_double(.x)),   # <- no () mistake
+    !!target_col := factor(.data[[target_col]],
+                           levels = c("1","2","3"),
+                           ordered = TRUE),
+    across(all_of(categorical_cols), ~ factor(.x)),
+    across(all_of(categorical_cols), ~ forcats::fct_lump_min(.x, min = 500))
   )
 
-# Plot bar charts (histogram for categorical variables)
-ggplot(nepal_char_long, aes(x = category)) +
+str(nepal, strict.width = "cut", width = 80)
+
+```
+
+
+```{r}
+total_NA <- sum(colSums(is.na(nepal)))
+total_NA
+
+print(
+  nepal |>
+    dplyr::select(all_of(numeric_cols)) |>
+    summary()
+)
+
+
+lvl_counts <- sapply(nepal[categorical_cols], nlevels)
+head(sort(lvl_counts, decreasing = TRUE))
+
+```
+
+
+```{r}
+plot_df <- nepal 
+if (length(numeric_cols) > 0) {
+  plot_df |>
+    dplyr::select(all_of(numeric_cols)) |>
+    tidyr::pivot_longer(everything(), names_to = "variable", values_to = "value") |>
+    ggplot(aes(x = variable, y = value)) +
+    geom_boxplot() +
+    facet_wrap(~ variable, scales = "free", ncol = 4) +
+    theme_minimal(base_size = 12) +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+    labs(title = "Boxplots of Numeric Variables", x = NULL, y = "Value")
+}
+
+
+```
+
+```{r}
+if (length(numeric_cols) > 0) {
+  plot_df |>
+    dplyr::select(all_of(numeric_cols)) |>
+    tidyr::pivot_longer(everything(), names_to = "variable", values_to = "value") |>
+    ggplot(aes(x = value)) +
+    geom_histogram(bins = 40) +
+    facet_wrap(~ variable, scales = "free", ncol = 4) +
+    theme_minimal(base_size = 12) +
+    labs(title = "Histograms of Numeric Variables", x = "Value", y = "Count")
+}
+
+```
+
+```{r}
+# Cell 1 — First 10 categorical variables 
+cat_cols_30 <- categorical_cols
+if (length(cat_cols_30) > 30) cat_cols_30 <- cat_cols_30[1:30]
+
+nepal |>
+  dplyr::select(all_of(cat_cols_30[1:10])) |>
+  dplyr::mutate(dplyr::across(dplyr::everything(), as.character)) |>
+  tidyr::pivot_longer(dplyr::everything(),
+                      names_to = "variable", values_to = "category") |>
+  ggplot(aes(x = category)) +
   geom_bar(fill = "tomato") +
-  facet_wrap(~ variable, scales = "free_x") +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
-    plot.title = element_text(face = "bold")
-  ) +
-  labs(
-    title = "Distribution of Character Variables in Nepal Dataset",
-    x = "Category",
-    y = "Count"
-  )
+  facet_wrap(~ variable, scales = "free_x", ncol = 3) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
+        plot.title  = element_text(face = "bold")) +
+  labs(title = "Distribution of Categorical Variables (1–10)",
+       x = "Category", y = "Count")
+
+
 ```
+
+
+```{r}
+# Cell 2 — Second 10 categorical variables 
+nepal |>
+  dplyr::select(all_of(cat_cols_30[11:20])) |>
+  dplyr::mutate(dplyr::across(dplyr::everything(), as.character)) |>
+  tidyr::pivot_longer(dplyr::everything(),
+                      names_to = "variable", values_to = "category") |>
+  ggplot(aes(x = category)) +
+  geom_bar(fill = "tomato") +
+  facet_wrap(~ variable, scales = "free_x", ncol = 3) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
+        plot.title  = element_text(face = "bold")) +
+  labs(title = "Distribution of Categorical Variables (11–20)",
+       x = "Category", y = "Count")
+
+```
+
+```{r}
+# Cell 3 — Last 10 categorical variables
+nepal |>
+  dplyr::select(all_of(cat_cols_30[21:30])) |>
+  dplyr::mutate(dplyr::across(dplyr::everything(), as.character)) |>
+  tidyr::pivot_longer(dplyr::everything(),
+                      names_to = "variable", values_to = "category") |>
+  ggplot(aes(x = category)) +
+  geom_bar(fill = "tomato") +
+  facet_wrap(~ variable, scales = "free_x", ncol = 3) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
+        plot.title  = element_text(face = "bold")) +
+  labs(title = "Distribution of Categorical Variables (21–30)",
+       x = "Category", y = "Count")
+
+```
+
+
+
+
 
 
 # GLM
