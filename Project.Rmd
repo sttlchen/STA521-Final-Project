@@ -4,12 +4,19 @@ output: html_document
 date: "`r Sys.Date()`"
 ---
 
+# Set ups
 ```{r}
-# Load libraries
+# Load Data
 library(tidyverse)
 library(forcats)
+library(smotefamily)
+
+# Set seeds
+set.seed(521)
 ```
 
+
+# EDA
 ```{r}
 # Load data
 nepal <- readr::read_csv("nepal_dat.csv")
@@ -183,10 +190,54 @@ nepal |>
 
 ```
 
+# Feature Engineering
+```{r}
+# Use SMOTE to make data more balanced
+p_min <- 0.25
 
+y <- nepal[["damage_grade"]]
+X <- nepal[, setdiff(names(nepal), "damage_grade"), drop = FALSE]
+X_num <- model.matrix(~ . - 1, data = X)
 
+tab <- table(y)
+levs <- names(tab)
+maj_n <- max(tab)
+floor_n <- ceiling(p_min * maj_n)
 
+n_c <- as.numeric(tab)
+dup_size <- ceiling(pmax(0, floor_n - n_c) / pmax(1, n_c))
+names(dup_size) <- levs
 
+tab_before <- table(y)
+prop_before <- prop.table(tab_before)
+cat("Class proportions before SMOTE:\n")
+print(round(prop_before, 4))
+
+sm_out <- SMOTE(
+  X = as.data.frame(X_num), target = y, K = 5,
+  dup_size = dup_size
+)
+
+nepal_smote <- as.data.frame(sm_out$data)
+colnames(nepal_smote)[ncol(nepal_smote)] <- "damage_grade"
+
+tblA <- table(nepal_smote[["damage_grade"]])
+maj_lvl <- names(which.max(tblA))
+maj_nA <- as.integer(max(tblA))
+others <- tblA[names(tblA) != maj_lvl]
+sum_others <- sum(others)
+m_caps <- floor((as.numeric(others) / p_min) - sum_others)
+m_target <- min(c(m_caps, maj_nA))
+
+idx_maj <- which(nepal_smote[["damage_grade"]] == maj_lvl)
+keep_maj <- sample(idx_maj, size = m_target)
+keep_all <- c(keep_maj, which(nepal_smote[["damage_grade"]] != maj_lvl))
+nepal_smote <- nepal_smote[keep_all, , drop = FALSE]
+
+cat("Class proportions after balancing:\n")
+print(round(prop.table(table(nepal_smote[["damage_grade"]])), 4))
+cat(sprintf("\nFinal shape : %d rows × %d cols\n", nrow(nepal_smote), ncol(nepal_smote)))
+```
 
 # GLM
 
