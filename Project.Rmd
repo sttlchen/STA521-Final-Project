@@ -239,6 +239,42 @@ print(round(prop.table(table(nepal_smote[["damage_grade"]])), 4))
 cat(sprintf("\nFinal shape : %d rows × %d cols\n", nrow(nepal_smote), ncol(nepal_smote)))
 ```
 
+```{r}
+# standard scaling nuermical columns
+nepal_smote_scaled <- nepal_smote
+nepal_smote_scaled[numeric_cols] <- scale(nepal_smote[numeric_cols])
+
+summary(nepal_smote_scaled[numeric_cols])
+```
+
+```{r}
+plot_df_2 <- nepal_smote_scaled
+if (length(numeric_cols) > 0) {
+  plot_df_2 |>
+    dplyr::select(all_of(numeric_cols)) |>
+    tidyr::pivot_longer(everything(), names_to = "variable", values_to = "value") |>
+    ggplot(aes(x = variable, y = value)) +
+    geom_boxplot() +
+    facet_wrap(~ variable, scales = "free", ncol = 4) +
+    theme_minimal(base_size = 12) +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+    labs(title = "Boxplots of Numeric Variables after SMOTE and Standard Scaling", x = NULL, y = "Value")
+}
+```
+```{r}
+if (length(numeric_cols) > 0) {
+  plot_df_2 |>
+    dplyr::select(all_of(numeric_cols)) |>
+    tidyr::pivot_longer(everything(), names_to = "variable", values_to = "value") |>
+    ggplot(aes(x = value)) +
+    geom_histogram(bins = 40) +
+    facet_wrap(~ variable, scales = "free", ncol = 4) +
+    theme_minimal(base_size = 12) +
+    labs(title = "Histograms of Numeric Variables After SMOTE and Standard Scaling", x = "Value", y = "Count")
+}
+```
+
+
 # GLM
 
 ```{r}
