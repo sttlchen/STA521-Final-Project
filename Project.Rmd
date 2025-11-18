@@ -297,10 +297,76 @@ exp(coef(ord_model)) # odds ratios
 ```
 
 ```{r}
+library(caret)
 # Predicted values
 preds <- predict(ord_model, newdata = nepal)
 
 # Confusion matrix
 confusionMatrix(preds, nepal$damage_grade)
 
+```
+
+This barely predicts from simply predicting class2 and is performing badly, so we consider some alternative approaches to the scaled data.
+
+# Train/Test Split
+
+```{r}
+idx_train <- createDataPartition(nepal_smote_scaled$damage_grade, p = 0.8, list = FALSE)
+train <- nepal_smote_scaled[idx_train, ]
+test  <- nepal_smote_scaled[-idx_train, ]
+```
+
+# RF
+
+```{r}
+library(randomForest)
+
+# If damage_grade is ordered, drop ordering for RF:
+train_rf <- train
+train_rf$damage_grade <- factor(train_rf$damage_grade)
+test_rf  <- test
+test_rf$damage_grade  <- factor(test_rf$damage_grade)
+
+rf_mod <- randomForest(
+  damage_grade ~ .,
+  data = train_rf,
+  ntree = 10,
+  mtry  = floor(sqrt(ncol(train_rf) - 1)),  # heuristic
+  importance = TRUE
+)
+
+pred_rf <- predict(rf_mod, newdata = test_rf)
+
+cm_rf <- confusionMatrix(pred_rf, test_rf$damage_grade)
+cm_rf 
+```
+
+```{r}
+library(ranger)
+
+set.seed(521)
+
+train_rf <- train
+train_rf$damage_grade <- factor(train_rf$damage_grade)
+test_rf  <- test
+test_rf$damage_grade  <- factor(test_rf$damage_grade)
+
+p <- ncol(train_rf) - 1  # number of predictors
+
+rf_mod_fast <- ranger(
+  formula = damage_grade ~ .,
+  data = train_rf,
+  num.trees = 600,                     # fewer trees than 500
+  mtry = floor(sqrt(p)),              # standard heuristic
+  min.node.size = 20,                 # slightly larger leaf size → faster
+  importance = "impurity",
+  respect.unordered.factors = "order" # handles factors efficiently
+)
+
+# Predictions
+pred_rf <- predict(rf_mod_fast, data = test_rf)$predictions
+pred_rf <- factor(pred_rf, levels = levels(test_rf$damage_grade))
+
+cm_rf <- caret::confusionMatrix(pred_rf, test_rf$damage_grade)
+cm_rf
 ```
