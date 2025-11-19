@@ -132,7 +132,6 @@ if (length(numeric_cols) > 0) {
 ```
 
 ```{r}
-# Cell 1 — First 10 categorical variables 
 cat_cols_30 <- categorical_cols
 if (length(cat_cols_30) > 30) cat_cols_30 <- cat_cols_30[1:30]
 
@@ -155,7 +154,6 @@ nepal |>
 
 
 ```{r}
-# Cell 2 — Second 10 categorical variables 
 nepal |>
   dplyr::select(all_of(cat_cols_30[11:20])) |>
   dplyr::mutate(dplyr::across(dplyr::everything(), as.character)) |>
@@ -173,7 +171,6 @@ nepal |>
 ```
 
 ```{r}
-# Cell 3 — Last 10 categorical variables
 nepal |>
   dplyr::select(all_of(cat_cols_30[21:30])) |>
   dplyr::mutate(dplyr::across(dplyr::everything(), as.character)) |>
@@ -197,7 +194,17 @@ p_min <- 0.25
 
 y <- nepal[["damage_grade"]]
 X <- nepal[, setdiff(names(nepal), "damage_grade"), drop = FALSE]
-X_num <- model.matrix(~ . - 1, data = X)
+
+# LABEL ENCODING for categorical columns
+label_encode <- function(col) {
+  if (is.factor(col) | is.character(col)) {
+    return(as.numeric(factor(col))) 
+  } else {
+    return(col)
+  }
+}
+
+X_le <- as.data.frame(lapply(X, label_encode))
 
 tab <- table(y)
 levs <- names(tab)
@@ -214,7 +221,7 @@ cat("Class proportions before SMOTE:\n")
 print(round(prop_before, 4))
 
 sm_out <- SMOTE(
-  X = as.data.frame(X_num), target = y, K = 5,
+  X = as.data.frame(X_le), target = y, K = 5,
   dup_size = dup_size
 )
 
@@ -261,6 +268,7 @@ if (length(numeric_cols) > 0) {
     labs(title = "Boxplots of Numeric Variables after SMOTE and Standard Scaling", x = NULL, y = "Value")
 }
 ```
+
 ```{r}
 if (length(numeric_cols) > 0) {
   plot_df_2 |>
@@ -275,43 +283,48 @@ if (length(numeric_cols) > 0) {
 ```
 
 
-# GLM
-
+# GLM with multinomial link
 ```{r}
-library(MASS)
-glm_dat = nepal_smote_scaled
+library(nnet)
 
-ord_model <- polr(
-  damage_grade ~ factor(geo_level_1_id) + factor(geo_level_2_id) + factor(geo_level_3_id) +
-    count_floors_pre_eq + age + area_percentage + height_percentage +
-    land_surface_conditionn + land_surface_conditiono + land_surface_conditiont 
-    + foundation_typei + foundation_typer + foundation_typeu + foundation_typew 
-    + roof_typeq + roof_typex + ground_floor_typev + ground_floor_typex + ground_floor_typez
-    + ground_floor_typeOther + other_floor_typeq + other_floor_types + other_floor_typex
-    + positiono + positions + positiont + count_families + has_superstructure_mud_mortar_stone1,
-  data = glm_dat,
-  Hess = TRUE
+glm_dat <- nepal_smote_scaled
+
+multi_fit_all <- multinom(
+  damage_grade ~ .,
+  data  = glm_dat,
+  trace = TRUE
 )
 
-summary(ord_model)
-exp(coef(ord_model)) # odds ratios
+summary(multi_fit_all)
 
 ```
 
 ```{r}
-library(caret)
-# Predicted values
-preds <- predict(ord_model, newdata = glm_dat)
-
-# Confusion matrix
-confusionMatrix(preds, glm_dat$damage_grade)
-
+pred_class <- predict(multi_fit_all, newdata = glm_dat)              # factor
+pred_prob  <- predict(multi_fit_all, newdata = glm_dat, type = "probs")
 ```
+
+```{r}
+# Make sure both are factors
+true_y  <- factor(glm_dat$damage_grade)
+pred_y  <- factor(pred_class)
+
+# Force matching levels
+common_levels <- levels(true_y)
+pred_y <- factor(pred_y, levels = common_levels)
+
+# Now compute confusion matrix
+library(caret)
+cm <- confusionMatrix(pred_y, true_y)
+cm
+
+kappa
+```
+
 
 This barely predicts from simply predicting class2 and is performing badly, so we consider some alternative approaches to the scaled data.
 
-# Train/Test Split
-
+# Train/Test Split (for classifications)
 ```{r}
 idx_train <- createDataPartition(nepal_smote_scaled$damage_grade, p = 0.8, list = FALSE)
 train <- nepal_smote_scaled[idx_train, ]
@@ -319,7 +332,6 @@ test  <- nepal_smote_scaled[-idx_train, ]
 ```
 
 # RF
-
 ```{r}
 library(randomForest)
 
