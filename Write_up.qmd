@@ -1,6 +1,42 @@
 ---
-title: "Write_up"
+title: "Write-up"
 format: html
 ---
+
+## Introduction
+
+The April 2015 Nepal earthquake killed almost 9,000 people and was one of the worst natural disasters to strike Nepal in a century, causing widespread destruction of buildings and mass homelessness. Today’s data represent one of the largest post-disaster datasets ever collected, being made available by Kathmandu Living Labs and the Central Bureau of Statistics.
+
+The goal of the project is to predict damage_grade, an ordinal variable which corresponds to the level of damage sustained by each building in the earthquake. 1 represents “low” damage, 2 represents moderate damage, and 3 represents severe damage.
+
+There are numerous varables included in the dataset, below are comprehensive lists of the features and their distributions:
+
+-   Numeric Variables:: geo_level_1_id, geo_level_2_id, geo_level_3_id, count_floors_pre_eq, age, area_percentage, height_percentage, count_families.
+
+-   Numeric Plots:
+
+    ![](images/clipboard-4054758307.png){width="319"}![](images/clipboard-2895068315.png){width="326"}
+
+-   Categorical Variables: land_surface_condition, foundation_type, roof_type, other_floor_type, plan_configuration, has_superstructure_mud_mortar_stone, has_superstructure_stone_flag, has_superstructure_mud_mortar_brick, has_superstructure_cement_mortar_brick, has_superstructure_timber, has_superstructure_bamboo, has_superstructure_rc_non_engineered, has_superstructure_rc_engineered, has_superstructure_other, legal_ownership_status, has_secondary_use, has_secondary_use_agriculture, has_secondary_use_hotel, has_secondary_use_rental, has_secondary_use_institution, has_secondary_use_school, has_secondary_use_industry, has_secondary_use_health_post, has_secondary_use_gov_office, has_secondary_use_use_police, has_secondary_use_other.
+
+-   Categorical Plots:
+
+    ![](images/clipboard-2628711348.png){width="327"}![](images/clipboard-4192401762.png){width="334"}
+
+    ![](images/clipboard-891184747.png){width="329"}
+
+## Data Cleaning & Feature Engineering
+
+Before proceeding to modeling, it is important for us to keep track of missing values as well as response variable imbalancing issue.
+
+We checked the number of missing values for every column in the data-set and realized that there are no missing values at all, allowing us to proceed to imbalancing detection of response variable (damage_grade).
+
+We checked the current proportions of sample belonging to the three damage grades and observed that there are 9.6% of samples belonging to damage_grade = 1, 56.88% of samples belonging to damage_grade = 2, and 33.52% of samples belonging to damage_grade = 3.
+
+While proportions of samples belonging to damage_grade = 2, 3 are not concerning, there are far less samples in damage_grade = 1 and thus our models might over-fit features from samples in damage_grade = 2 or 3. In order to mitigate such issue, we utilized SMOTE to raise the proportion of samples belong to damage_grade = 1 by making fake identities with possible features of real samples with damage_grade = 1. After SMOTE, the proportions of samples belonging to each damage grade is - "damage_grade = 1" : 32.57%, "damage_grade = 2" : 42.43%, "damage_grade = 3" : 25%.
+
+Finally, to avoid potential modeling bias from large scaled numerical variables, we used standard scaling to keep all numerical variables between 0 and 1. After scaling, the numeral variables have following distributions:
+
+![](images/clipboard-2901867343.png){width="339"} ![](images/clipboard-1620609464.png){width="333"}
 
 ssss
