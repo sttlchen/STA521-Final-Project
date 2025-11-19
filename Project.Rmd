@@ -187,7 +187,7 @@ nepal |>
 
 ```
 
-# Feature Engineering
+# Feature engineering
 ```{r}
 # Use SMOTE to make data more balanced
 p_min <- 0.25
