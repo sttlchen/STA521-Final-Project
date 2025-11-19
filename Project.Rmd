@@ -370,3 +370,98 @@ pred_rf <- factor(pred_rf, levels = levels(test_rf$damage_grade))
 cm_rf <- caret::confusionMatrix(pred_rf, test_rf$damage_grade)
 cm_rf
 ```
+
+```{r}
+# -------------------------------
+# 1. Use SMOTE + scaled dataset
+# -------------------------------
+dat <- nepal_smote_scaled
+
+# Ensure damage_grade is a proper factor with levels "1","2","3"
+dat$damage_grade <- factor(dat$damage_grade, levels = c("1", "2", "3"))
+
+# -------------------------------
+# 2. Train/test split (stratified)
+# -------------------------------
+idx_train <- createDataPartition(dat$damage_grade, p = 0.8, list = FALSE)
+train <- dat[idx_train, ]
+test  <- dat[-idx_train, ]
+
+# Confirm factor levels are consistent
+train$damage_grade <- droplevels(train$damage_grade)
+test$damage_grade  <- factor(test$damage_grade,
+                             levels = levels(train$damage_grade))
+
+# -------------------------------
+# 3. Prepare data for CatBoost
+# -------------------------------
+# Separate predictors and target
+X_train <- subset(train, select = -damage_grade)
+X_test  <- subset(test,  select = -damage_grade)
+
+# Numeric class labels for CatBoost: 0,1,2
+y_train_num <- as.integer(train$damage_grade) - 1
+y_test_num  <- as.integer(test$damage_grade)  - 1
+
+# Create CatBoost pools (all predictors numeric at this point)
+train_pool <- catboost.load_pool(
+  data  = as.matrix(X_train),
+  label = y_train_num
+)
+test_pool <- catboost.load_pool(
+  data  = as.matrix(X_test),
+  label = y_test_num
+)
+
+# -------------------------------
+# 4. Train CatBoost model
+# -------------------------------
+cat_params <- list(
+  loss_function = "MultiClass",
+  eval_metric   = "MultiClass",
+  iterations    = 3000,
+  learning_rate = 0.08,
+  depth         = 8,
+  l2_leaf_reg   = 5,
+  bagging_temperature = 1,
+  rsm          = 0.9,
+  random_seed  = 521,
+  od_type      = "Iter",
+  od_wait      = 80
+)
+
+
+cat_model <- catboost.train(
+  learn_pool = train_pool,
+  test_pool  = NULL,
+  params     = cat_params
+)
+
+# -------------------------------
+# 5. Predictions + confusion matrix
+# -------------------------------
+# Get class probabilities: n x 3 matrix
+pred_prob_cat <- catboost.predict(
+  model = cat_model,
+  pool  = test_pool,
+  prediction_type = "Probability"
+)
+
+# Pick class with highest probability (0,1,2)
+pred_idx0 <- max.col(pred_prob_cat) - 1
+
+# Map 0,1,2 back to "1","2","3"
+dg_levels <- levels(train$damage_grade)  # c("1","2","3")
+pred_cat <- factor(dg_levels[pred_idx0 + 1], levels = dg_levels)
+
+# Confusion matrix
+cm_cat <- confusionMatrix(pred_cat, test$damage_grade)
+cm_cat
+
+# Optional: extract accuracy + balanced accuracy
+cat_metrics <- data.frame(
+  Accuracy         = cm_cat$overall["Accuracy"],
+  BalancedAccuracy = mean(cm_cat$byClass[, "Balanced Accuracy"])
+)
+cat_metrics
+```
