@@ -279,15 +279,17 @@ if (length(numeric_cols) > 0) {
 
 ```{r}
 library(MASS)
+glm_dat = nepal_smote_scaled
 
 ord_model <- polr(
-  damage_grade ~ geo_level_1_id + geo_level_2_id + geo_level_3_id +
+  damage_grade ~ factor(geo_level_1_id) + factor(geo_level_2_id) + factor(geo_level_3_id) +
     count_floors_pre_eq + age + area_percentage + height_percentage +
-    land_surface_condition + foundation_type + roof_type +
-    ground_floor_type + other_floor_type + position + plan_configuration +
-    has_superstructure_cement_mortar_brick + has_superstructure_rc_engineered +
-    has_superstructure_mud_mortar_stone + count_families + has_secondary_use,
-  data = nepal,
+    land_surface_conditionn + land_surface_conditiono + land_surface_conditiont 
+    + foundation_typei + foundation_typer + foundation_typeu + foundation_typew 
+    + roof_typeq + roof_typex + ground_floor_typev + ground_floor_typex + ground_floor_typez
+    + ground_floor_typeOther + other_floor_typeq + other_floor_types + other_floor_typex
+    + positiono + positions + positiont + count_families + has_superstructure_mud_mortar_stone1,
+  data = glm_dat,
   Hess = TRUE
 )
 
@@ -299,10 +301,10 @@ exp(coef(ord_model)) # odds ratios
 ```{r}
 library(caret)
 # Predicted values
-preds <- predict(ord_model, newdata = nepal)
+preds <- predict(ord_model, newdata = glm_dat)
 
 # Confusion matrix
-confusionMatrix(preds, nepal$damage_grade)
+confusionMatrix(preds, glm_dat$damage_grade)
 
 ```
 
