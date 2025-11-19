@@ -2,7 +2,7 @@
 title: "Write-up"
 format: html
 ---
-
+Authors: Tianle Chen, Sicheng Zhang, Zixuan Lin
 ## Introduction
 
 The April 2015 Nepal earthquake killed almost 9,000 people and was one of the worst natural disasters to strike Nepal in a century, causing widespread destruction of buildings and mass homelessness. Today’s data represent one of the largest post-disaster datasets ever collected, being made available by Kathmandu Living Labs and the Central Bureau of Statistics.
