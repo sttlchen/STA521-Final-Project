@@ -83,6 +83,41 @@ str(nepal, strict.width = "cut", width = 80)
 
 ```
 
+```{r}
+# Outlier detection with Isolation Forest
+library(isotree)
+
+x_if <- nepal |>
+  dplyr::select(all_of(numeric_cols)) |>
+  as.matrix()
+
+set.seed(521)
+
+# Fit Isolation Forest
+iso_mod <- isolation.forest(
+  x_if,
+  ntrees      = 200,   # number of trees
+  sample_size = 256    # subsample size per tree
+)
+
+# Anomaly scores: larger = more "outlier-like"
+scores <- predict(iso_mod, x_if, type = "score")
+
+summary(scores)
+quantile(scores, probs = c(0.95, 0.97, 0.99))
+
+# Choose a cutoff: top 2% most anomalous as outliers
+cutoff     <- quantile(scores, 0.98)
+is_outlier <- scores > cutoff
+
+table(is_outlier)
+table(nepal$damage_grade[is_outlier])
+
+# Keep only non-outliers
+nepal <- nepal[!is_outlier, , drop = FALSE]
+
+dim(nepal)
+```
 
 ```{r}
 total_NA <- sum(colSums(is.na(nepal)))
