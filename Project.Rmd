@@ -386,6 +386,8 @@ cm_rf
 ```
 
 ```{r}
+library(catboost)
+
 # -------------------------------
 # 1. Use SMOTE + scaled dataset
 # -------------------------------
@@ -435,14 +437,15 @@ cat_params <- list(
   eval_metric   = "MultiClass",
   iterations    = 3000,
   learning_rate = 0.08,
-  depth         = 8,
+  depth         = 9,
   l2_leaf_reg   = 5,
   bagging_temperature = 1,
-  rsm          = 0.9,
+  rsm          = 0.8,
   random_seed  = 521,
   od_type      = "Iter",
-  od_wait      = 80
+  od_wait      = 40
 )
+
 
 
 cat_model <- catboost.train(
@@ -478,4 +481,232 @@ cat_metrics <- data.frame(
   BalancedAccuracy = mean(cm_cat$byClass[, "Balanced Accuracy"])
 )
 cat_metrics
+```
+
+```{r}
+library(pROC)
+true_factor <- test$damage_grade  # levels: "1","2","3"
+# Convert true labels into binary indicators
+y1 <- ifelse(true_factor == "1", 1, 0)
+y2 <- ifelse(true_factor == "2", 1, 0)
+y3 <- ifelse(true_factor == "3", 1, 0)
+
+roc1 <- roc(response = y1, predictor = pred_prob_cat[,1])
+roc2 <- roc(response = y2, predictor = pred_prob_cat[,2])
+roc3 <- roc(response = y3, predictor = pred_prob_cat[,3])
+
+auc1 <- auc(roc1)
+auc2 <- auc(roc2)
+auc3 <- auc(roc3)
+
+auc1; auc2; auc3
+plot(roc1, col = "red",   main = "CatBoost ROC Curves (Multiclass)")
+plot(roc2, col = "blue",  add = TRUE)
+plot(roc3, col = "green", add = TRUE)
+
+legend("bottomright",
+       legend = c(
+         paste0("Class 1, AUC=", round(auc1,3)),
+         paste0("Class 2, AUC=", round(auc2,3)),
+         paste0("Class 3, AUC=", round(auc3,3))
+       ),
+       col = c("red","blue","green"), lwd = 2)
+
+```
+
+```{r}
+library(xgboost)
+library(caret)
+library(pROC)
+library(dplyr)
+
+# -------------------------------
+# 1. Use SMOTE + scaled dataset
+# -------------------------------
+dat <- nepal_smote_scaled
+
+# Make sure damage_grade is a 3-level factor
+dat$damage_grade <- factor(dat$damage_grade, levels = c("1", "2", "3"))
+
+# -------------------------------
+# 2. Train/test split (stratified)
+# -------------------------------
+set.seed(521)
+idx_train <- createDataPartition(dat$damage_grade, p = 0.8, list = FALSE)
+train <- dat[idx_train, ]
+test  <- dat[-idx_train, ]
+
+train$damage_grade <- droplevels(train$damage_grade)
+test$damage_grade  <- factor(test$damage_grade,
+                             levels = levels(train$damage_grade))
+
+# -------------------------------
+# 3. Model matrix for XGBoost
+# -------------------------------
+x_formula <- as.formula("~ . - damage_grade")
+
+X_train <- model.matrix(x_formula, data = train)[, -1]  # drop intercept
+X_test  <- model.matrix(x_formula, data = test)[, -1]
+
+y_train_factor <- train$damage_grade
+y_test_factor  <- test$damage_grade
+
+# numeric labels 0,1,2 for XGBoost
+y_train <- as.numeric(y_train_factor) - 1
+y_test  <- as.numeric(factor(y_test_factor,
+                             levels = levels(y_train_factor))) - 1
+
+num_class <- nlevels(y_train_factor)
+
+dtrain <- xgb.DMatrix(data = X_train, label = y_train)
+dtest  <- xgb.DMatrix(data = X_test,  label = y_test)
+eval_xgb_once <- function(max_depth, eta) {
+  params <- list(
+    objective        = "multi:softprob",
+    eval_metric      = "mlogloss",
+    num_class        = num_class,
+    max_depth        = max_depth,
+    eta              = eta,
+    subsample        = 0.8,
+    colsample_bytree = 0.8,
+    min_child_weight = 1,
+    gamma            = 0
+  )
+  
+  watchlist <- list(train = dtrain, eval = dtest)
+  
+  set.seed(521)
+  fit <- xgb.train(
+    params = params,
+    data   = dtrain,
+    nrounds = 1500,
+    watchlist = watchlist,
+    early_stopping_rounds = 40,
+    verbose = 0
+  )
+  
+  # predictions on test
+  pred_prob <- predict(fit, dtest)
+  pred_mat <- matrix(pred_prob,
+                     nrow = length(y_test),
+                     ncol = num_class,
+                     byrow = TRUE)
+  pred_idx <- max.col(pred_mat)
+  dg_levels <- levels(y_train_factor)
+  pred_factor <- factor(dg_levels[pred_idx], levels = dg_levels)
+  
+  cm <- confusionMatrix(pred_factor, y_test_factor)
+  ba <- mean(cm$byClass[, "Balanced Accuracy"])
+  
+  tibble(
+    max_depth = max_depth,
+    eta = eta,
+    best_iteration = fit$best_iteration,
+    BalancedAccuracy = ba
+  )
+}
+# ---- Step 1: tune depth ----
+depth_grid <- c(4, 6, 8)
+eta0 <- 0.05
+
+res_depth <- bind_rows(
+  lapply(depth_grid, function(d) eval_xgb_once(max_depth = d, eta = eta0))
+)
+
+res_depth
+best_depth <- res_depth$max_depth[which.max(res_depth$BalancedAccuracy)]
+best_depth
+
+# ---- Step 2: tune eta given best_depth ----
+eta_grid <- c(0.03, 0.05, 0.08)
+
+res_eta <- bind_rows(
+  lapply(eta_grid, function(e) eval_xgb_once(max_depth = best_depth, eta = e))
+)
+
+res_eta
+best_eta <- res_eta$eta[which.max(res_eta$BalancedAccuracy)]
+best_eta
+final_params <- list(
+  objective        = "multi:softprob",
+  eval_metric      = "mlogloss",
+  num_class        = num_class,
+  max_depth        = best_depth,
+  eta              = best_eta,
+  subsample        = 0.8,
+  colsample_bytree = 0.8,
+  min_child_weight = 1,
+  gamma            = 0
+)
+
+watchlist <- list(train = dtrain, eval = dtest)
+
+set.seed(521)
+xgb_final <- xgb.train(
+  params = final_params,
+  data   = dtrain,
+  nrounds = 1500,
+  watchlist = watchlist,
+  early_stopping_rounds = 40,
+  print_every_n = 20
+)
+
+xgb_final$best_iteration
+
+# Predict probabilities for test data
+pred_prob_final <- predict(xgb_final, dtest)
+
+pred_mat_final <- matrix(pred_prob_final,
+                         nrow = length(y_test),
+                         ncol = num_class,
+                         byrow = TRUE)
+
+pred_idx_final <- max.col(pred_mat_final)
+dg_levels <- levels(y_train_factor)
+pred_final <- factor(dg_levels[pred_idx_final], levels = dg_levels)
+
+cm_xgb_final <- confusionMatrix(pred_final, y_test_factor)
+cm_xgb_final
+
+xgb_metrics_final <- data.frame(
+  Accuracy         = cm_xgb_final$overall["Accuracy"],
+  BalancedAccuracy = mean(cm_xgb_final$byClass[, "Balanced Accuracy"])
+)
+xgb_metrics_final
+# true labels
+true_factor <- y_test_factor  # "1","2","3"
+
+# one-vs-rest binary indicators
+y1 <- ifelse(true_factor == "1", 1, 0)
+y2 <- ifelse(true_factor == "2", 1, 0)
+y3 <- ifelse(true_factor == "3", 1, 0)
+
+# ROC objects
+roc1 <- roc(response = y1, predictor = pred_mat_final[, 1])
+roc2 <- roc(response = y2, predictor = pred_mat_final[, 2])
+roc3 <- roc(response = y3, predictor = pred_mat_final[, 3])
+
+auc1 <- auc(roc1)
+auc2 <- auc(roc2)
+auc3 <- auc(roc3)
+
+auc1; auc2; auc3
+
+# Macro-average AUC
+macro_auc <- mean(c(auc1, auc2, auc3))
+macro_auc
+plot(roc1, col = "red",   main = "XGBoost ROC Curves (Multiclass)")
+plot(roc2, col = "blue",  add = TRUE)
+plot(roc3, col = "green", add = TRUE)
+
+legend("bottomright",
+       legend = c(
+         paste0("Class 1 (damage_grade=1), AUC=", round(auc1, 3)),
+         paste0("Class 2 (damage_grade=2), AUC=", round(auc2, 3)),
+         paste0("Class 3 (damage_grade=3), AUC=", round(auc3, 3)),
+         paste0("Macro AUC=", round(macro_auc, 3))
+       ),
+       col = c("red", "blue", "green", "black"),
+       lwd = 2)
+
 ```
