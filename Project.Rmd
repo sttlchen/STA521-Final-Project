@@ -20,6 +20,7 @@ set.seed(521)
 ```{r}
 # Load data
 nepal <- readr::read_csv("nepal_dat.csv")
+nepal_test <- readr::read_csv("nepal_test.csv")
 dim(nepal); glimpse(nepal)
 ```
 
@@ -282,53 +283,47 @@ if (length(numeric_cols) > 0) {
 }
 ```
 
+# Train/Test Split
+```{r}
+idx_train <- createDataPartition(nepal_smote_scaled$damage_grade, p = 0.8, list = FALSE)
+train <- nepal_smote_scaled[idx_train, ]
+test  <- nepal_smote_scaled[-idx_train, ]
+```
 
 # GLM with multinomial link
 ```{r}
 library(nnet)
 
-glm_dat <- nepal_smote_scaled
+train_glm <- train
+test_glm  <- test
+train_glm$damage_grade <- factor(train_glm$damage_grade)
+test_glm$damage_grade  <- factor(test_glm$damage_grade,
+                                 levels = levels(train_glm$damage_grade))
 
-multi_fit_all <- multinom(
-  damage_grade ~ .,
-  data  = glm_dat,
+multi_fit <- multinom(
+  damage_grade ~ age + area_percentage + height_percentage +
+    count_floors_pre_eq + geo_level_1_id + geo_level_2_id + geo_level_3_id +
+    land_surface_condition + roof_type + other_floor_type +
+    has_superstructure_mud_mortar_stone,
+  data  = train_glm,
   trace = TRUE
 )
-
-summary(multi_fit_all)
-
 ```
 
 ```{r}
-pred_class <- predict(multi_fit_all, newdata = glm_dat)              # factor
-pred_prob  <- predict(multi_fit_all, newdata = glm_dat, type = "probs")
+pred_class_test <- predict(multi_fit, newdata = test_glm)
+pred_prob  <- predict(multi_fit_all, newdata = train_glm, type = "probs")
 ```
 
 ```{r}
 # Make sure both are factors
-true_y  <- factor(glm_dat$damage_grade)
-pred_y  <- factor(pred_class)
-
-# Force matching levels
-common_levels <- levels(true_y)
-pred_y <- factor(pred_y, levels = common_levels)
+true_y <- factor(test_glm$damage_grade)
+pred_y <- factor(pred_class_test, levels = levels(true_y))
 
 # Now compute confusion matrix
 library(caret)
 cm <- confusionMatrix(pred_y, true_y)
 cm
-
-kappa
-```
-
-
-This barely predicts from simply predicting class2 and is performing badly, so we consider some alternative approaches to the scaled data.
-
-# Train/Test Split (for classifications)
-```{r}
-idx_train <- createDataPartition(nepal_smote_scaled$damage_grade, p = 0.8, list = FALSE)
-train <- nepal_smote_scaled[idx_train, ]
-test  <- nepal_smote_scaled[-idx_train, ]
 ```
 
 # RF
