@@ -2,7 +2,9 @@
 title: "Write-up"
 format: html
 ---
+
 Authors: Tianle Chen, Sicheng Zhang, Zixuan Lin
+
 ## Introduction
 
 The April 2015 Nepal earthquake killed almost 9,000 people and was one of the worst natural disasters to strike Nepal in a century, causing widespread destruction of buildings and mass homelessness. Today’s data represent one of the largest post-disaster datasets ever collected, being made available by Kathmandu Living Labs and the Central Bureau of Statistics.
@@ -39,4 +41,10 @@ Finally, to avoid potential modeling bias from large scaled numerical variables,
 
 ![](images/clipboard-2901867343.png){width="339"} ![](images/clipboard-1620609464.png){width="333"}
 
-ssss
+## Methodology
+
+We tried multiple models to predict the damage_grade of buildings, including generalized linear model with multinomial link function, Random Forest, Categorical Boosting, and XGBoost.
+
+For generalized linear model, we used the multinomial link function to account for the ordinal nature of the response variable. We also selected features based on their distributions to avoid invariant features (e.g. features with merely any level variations, visually identified through histograms). With feature interpretations in mind as well, we selected the following features for the GLM model: age, area_percentage, height_percentage, count_floors_pre_eq, geo_level_1_id, geo_level_2_id, geo_level_3_id, land_surface_condition, roof_type, other_floor_type, and has_superstructure_mud_mortar_stone. All features are directly related to the physical characteristics of the buildings, which are expected to have significant impact on the damage level.
+
+For Random Forest, Categorical Boosting, and XGBoost models, we used all features in the dataset to maximize the predictive power of the models, as all models are based on average performance of n decision trees with different features selected. Though we lose interpretability of the features in these models, we are able to achieve higher accuracy in prediction.
