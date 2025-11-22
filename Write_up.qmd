@@ -48,3 +48,27 @@ We tried multiple models to predict the damage_grade of buildings, including gen
 For generalized linear model, we used the multinomial link function to account for the ordinal nature of the response variable. We also selected features based on their distributions to avoid invariant features (e.g. features with merely any level variations, visually identified through histograms). With feature interpretations in mind as well, we selected the following features for the GLM model: age, area_percentage, height_percentage, count_floors_pre_eq, geo_level_1_id, geo_level_2_id, geo_level_3_id, land_surface_condition, roof_type, other_floor_type, and has_superstructure_mud_mortar_stone. All features are directly related to the physical characteristics of the buildings, which are expected to have significant impact on the damage level.
 
 For Random Forest, Categorical Boosting, and XGBoost models, we used all features in the dataset to maximize the predictive power of the models, as all models are based on average performance of n decision trees with different features selected. Though we lose interpretability of the features in these models, we are able to achieve higher accuracy in prediction.
+
+## Results
+
+We are first showing results of the multinomial link GLM. It has an accuracy of 56.1%, which is only 6% higher than random guessing.
+
+![](images/Screenshot 2025-11-21 at 19.31.34.png){width="199"}
+
+Next, we are showing results from the random forest model. It has a better overall accurarcy score than GLM.
+
+![](images/Screenshot 2025-11-21 at 19.38.13.png){width="190"}
+
+Lastly, we are showing the results from the greedy-tuned XGBoost model. It has the best accuracy score among all models.
+
+![](images/Screenshot 2025-11-21 at 19.42.53.png){width="196"}
+
+## Discussions
+
+The greedy-tuned XGBoost model achieved an overall accuracy of 82.8% and a balanced accuracy of 85.8% on the held-out test data. The ROC curves demonstrate excellent class separability, with AUC values of 0.993 for damage grade 1, 0.908 for grade 2, and 0.912 for grade 3, yielding a macro-AUC of 0.937.
+
+Misclassifications occur primarily between adjacent damage levels, which is expected for ordinal severity data. Importantly, the model rarely confuses high-severity (grade 3) buildings with low-severity (grade 1), indicating strong reliability for practical damage assessment.
+
+Overall, the model shows strong predictive performance, excellent discriminative ability, and is well-suited for classifying post-earthquake building damage.
+
+![](images/Screenshot 2025-11-21 at 19.45.00.png){width="421"}
