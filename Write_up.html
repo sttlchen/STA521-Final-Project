@@ -105,9 +105,9 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="discussions" class="level2">
 <h2 class="anchored" data-anchor-id="discussions">Discussions</h2>
-<p>The performance from the greedy-tuned XGBoost model based on overall accuracy on the held-out test data is 82.8%, while its balanced accuracy is 85.8%. The ROC curves of this model denote excellent class separability; for damage grade 1, the AUC is 0.993, grade 2 is 0.908, and grade 3 is 0.912, giving a macro-AUC of 0.937.</p>
-<p>Misclassifications occur primarily between adjacent damage levels, as one might expect for ordinal severity data. Notably, it rarely confuses high-severity (grade 3) buildings with low severity (grade 1), showing that the model is strongly reliable for practical damage assessment.</p>
-<p>The model is generally seen to possess strong predictive performance and excellent discriminative capability in the classification of post-earthquake building damages.</p>
+<p>The greedy-tuned XGBoost model performance evaluated using overall accuracy on the held-out test data is 82.8%, and the balanced accuracy is 85.8%, which are both high and extremely satisfactory. The ROC curves of this model also shows excellent class separability, and we can see that AUC for damage grade 1 is 0.993, 0.908 for grade 2, and 0.912 grade 3, with a macro-AUC of 0.937.</p>
+<p>We also observed some misclassifications, and the model mostly confuses between closeby classes. However, the minor misclassification is acceptable especially considering the complexity of real-world situations and likelihood of overfitting. In conclusion, the fitted model discriminates very well overall, as we can see from the sensitivity, specificity, etc. of every classes, showing that the model have the great potential to be practically used for real-world damagegrade prediction.</p>
+<p>Also, it would be worthy to point out that we also tried some other methods including but not limiting to GLM, Random Forest, CatBoost, etc. The basic random forest method also yield to a very strong accuracy of around 80%, and so for interpretability purposes one could also use random forest to draw geological conclusions.</p>
 <p><img src="images/Screenshot%202025-11-21%20at%2019.45.00.png" class="img-fluid" width="421"></p>
 </section>
 
