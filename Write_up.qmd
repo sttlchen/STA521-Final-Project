@@ -65,10 +65,10 @@ Lastly, we are showing the results from the greedy-tuned XGBoost model. It has t
 
 ## Discussions
 
-The greedy-tuned XGBoost model achieved an overall accuracy of 82.8% and a balanced accuracy of 85.8% on the held-out test data. The ROC curves demonstrate excellent class separability, with AUC values of 0.993 for damage grade 1, 0.908 for grade 2, and 0.912 for grade 3, yielding a macro-AUC of 0.937.
+The performance from the greedy-tuned XGBoost model based on overall accuracy on the held-out test data is 82.8%, while its balanced accuracy is 85.8%. The ROC curves of this model denote excellent class separability; for damage grade 1, the AUC is 0.993, grade 2 is 0.908, and grade 3 is 0.912, giving a macro-AUC of 0.937.
 
-Misclassifications occur primarily between adjacent damage levels, which is expected for ordinal severity data. Importantly, the model rarely confuses high-severity (grade 3) buildings with low-severity (grade 1), indicating strong reliability for practical damage assessment.
+Misclassifications occur primarily between adjacent damage levels, as one might expect for ordinal severity data. Notably, it rarely confuses high-severity (grade 3) buildings with low severity (grade 1), showing that the model is strongly reliable for practical damage assessment.
 
-Overall, the model shows strong predictive performance, excellent discriminative ability, and is well-suited for classifying post-earthquake building damage.
+The model is generally seen to possess strong predictive performance and excellent discriminative capability in the classification of post-earthquake building damages.
 
 ![](images/Screenshot 2025-11-21 at 19.45.00.png){width="421"}
