@@ -1,96 +1,261 @@
 ---
 title: "Write-up"
-format: html
+format:
+  html:
+    include-in-header:
+      text: |
+        <style>
+          /* Reduce paragraph spacing */
+          p {
+            margin-top: 0.3rem !important;
+            margin-bottom: 0.3rem !important;
+          }
+
+          /* Base body styling */
+          body {
+            font-size: 0.85rem;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+          }
+
+          /* Wider page */
+          .quarto-container {
+            max-width: 85% !important;
+          }
+
+          /* Smaller headings */
+          h1 { font-size: 1.2rem !important; margin: 0.35rem 0 !important; }
+          h2 { font-size: 1.05rem !important; margin: 0.3rem 0 !important; }
+          h3 { font-size: 0.95rem !important; margin: 0.25rem 0 !important; }
+          h4 { font-size: 0.85rem !important; margin: 0.2rem 0 !important; }
+        </style>
 ---
 
 Authors: Tianle Chen, Sicheng Zhang, Zixuan Lin
 
 ## Introduction
 
-The April 2015 Nepal earthquake killed almost 9,000 people and was one of the worst natural disasters to strike Nepal in a century, causing widespread destruction of buildings and mass homelessness. Today’s data represent one of the largest post-disaster datasets ever collected, being made available by Kathmandu Living Labs and the Central Bureau of Statistics.
+The April 2015 Nepal earthquake caused nearly 9,000 deaths and massive building damage, resulting in one of the largest post-disaster datasets ever collected. This project aims to predict **damage_grade**, an ordinal measure of building destruction (1 = low, 2 = moderate, 3 = severe). Accurate predictions help officials prioritize inspections and allocate reconstruction resources efficiently. Because large-scale manual inspections are costly and slow, we use machine-learning models that take building and geological features as inputs to automatically estimate damage severity.
 
-The goal of the project is to predict damage_grade, an ordinal variable which corresponds to the level of damage sustained by each building in the earthquake. 1 represents “low” damage, 2 represents moderate damage, and 3 represents severe damage. Accurate predictions would allow government departments to prioritize inspections and allocate limited reconstruction resources more efficiently in the future circumstances However, inspecting thousands of buildings after an earthquake is both time-consuming and costly, so to make this easier, we use machine learning models that take building and geologic features as inputs and predict the damage grade for each building.
-
-There are numerous varables included in the dataset, below are comprehensive lists of the features and their distributions:
-
--   Numeric Variables:: geo_level_1_id, geo_level_2_id, geo_level_3_id, count_floors_pre_eq, age, area_percentage, height_percentage, count_families.
+There are numerous varables included in the dataset, below are the features distributions:
 
 -   Numeric Plots:
 
-    ![](images/clipboard-4054758307.png){width="319"}![](images/clipboard-2895068315.png){width="326"}
-
--   Categorical Variables: land_surface_condition, foundation_type, roof_type, other_floor_type, plan_configuration, has_superstructure_mud_mortar_stone, has_superstructure_stone_flag, has_superstructure_mud_mortar_brick, has_superstructure_cement_mortar_brick, has_superstructure_timber, has_superstructure_bamboo, has_superstructure_rc_non_engineered, has_superstructure_rc_engineered, has_superstructure_other, legal_ownership_status, has_secondary_use, has_secondary_use_agriculture, has_secondary_use_hotel, has_secondary_use_rental, has_secondary_use_institution, has_secondary_use_school, has_secondary_use_industry, has_secondary_use_health_post, has_secondary_use_gov_office, has_secondary_use_use_police, has_secondary_use_other.
+    ![](images/clipboard-4054758307.png){width="216"}![](images/clipboard-2895068315.png){width="208"}
 
 -   Categorical Plots:
 
-    ![](images/clipboard-2628711348.png){width="327"}![](images/clipboard-4192401762.png){width="334"}
-
-    ![](images/clipboard-891184747.png){width="329"}
+    ![](images/clipboard-2628711348.png){width="236"}![](images/clipboard-4192401762.png){width="222"}![](images/clipboard-891184747.png){width="219"}
 
 ## Data Cleaning & Feature Engineering
 
-Before proceeding to modeling, it is important for us to keep track of missing values as well as response variable imbalancing issue.
-
-We checked the number of missing values for every column in the data-set and realized that there are no missing values at all, allowing us to proceed to imbalancing detection of response variable (damage_grade).
-
-We checked the current proportions of sample belonging to the three damage grades and observed that there are 9.6% of samples belonging to damage_grade = 1, 56.88% of samples belonging to damage_grade = 2, and 33.52% of samples belonging to damage_grade = 3.
-
-While proportions of samples belonging to damage_grade = 2, 3 are not concerning, there are far less samples in damage_grade = 1 and thus our models might over-fit features from samples in damage_grade = 2 or 3. In order to mitigate such issue, we utilized SMOTE to raise the proportion of samples belong to damage_grade = 1 by making fake identities with possible features of real samples with damage_grade = 1. After SMOTE, the proportions of samples belonging to each damage grade is - "damage_grade = 1" : 32.57%, "damage_grade = 2" : 42.43%, "damage_grade = 3" : 25%.
-
-Finally, to avoid potential modeling bias from large scaled numerical variables, we used standard scaling to keep all numerical variables between 0 and 1. After scaling, the numeral variables have following distributions:
-
-![](images/clipboard-2901867343.png){width="339"} ![](images/clipboard-1620609464.png){width="333"}
+Before modeling, we checked data quality and class balance. There were no missing values, so we focused on the imbalance in damage_grade, where only 9.6% of buildings were labeled as grade 1. Because this could cause the models to overfit grades 2 and 3, we used SMOTE to oversample grade 1. After SMOTE, the class distribution became more balanced (about 32.6% / 42.4% / 25% for grades 1–3). We then applied standard scaling to numerical variables to keep them on comparable ranges and reduce bias from differing scales.
 
 ## Methodology
 
-We tried multiple models to predict the damage_grade of buildings, including generalized linear model with multinomial link function, Random Forest, Categorical Boosting, and XGBoost.
+We evaluated several models to predict damage_grade, including a multinomial generalized linear model (GLM), Random Forest, CatBoost, and XGBoost.
 
-For generalized linear model, we used the multinomial link function to account for the ordinal nature of the response variable. We also selected features based on their distributions to avoid invariant features (e.g. features with merely any level variations, visually identified through histograms). With feature interpretations in mind as well, we selected the following features for the GLM model: age, area_percentage, height_percentage, count_floors_pre_eq, geo_level_1_id, geo_level_2_id, geo_level_3_id, land_surface_condition, roof_type, other_floor_type, and has_superstructure_mud_mortar_stone. All features are directly related to the physical characteristics of the buildings, which are expected to have significant impact on the damage level.
+For the multinomial GLM, we selected predictors based on variation and interpretability, removing invariant or near-constant features. The final set included variables reflecting structural and geographic characteristics (e.g., age, area_percentage, height_percentage, floor count, geo-levels, land_surface_condition, roof_type, and others). These features directly describe building attributes that plausibly affect damage severity.
 
-For Random Forest, Categorical Boosting, and XGBoost models, we used all features in the dataset after doing our data cleaning and feature engineering to maximize the predictive power of the models, as all models are based on average performance of n decision trees with different features selected. Though we lose interpretability of the features in these models, we are able to achieve higher accuracy in prediction.
+For tree-based models (Random Forest, CatBoost, XGBoost), we used the full engineered feature set to maximize predictive power. Although these models sacrifice interpretability, they typically achieve higher accuracy because they aggregate information across many decision trees. Within Random Forest, we first fit a baseline model using the randomForest package, then used the faster ranger implementation to extract variable importance and to train larger forests efficiently. We also built a “top-30 features” version to test whether limiting the model to the most important predictors improved performance.
 
-For Random Forest, we first fit a basic model using the randomForest package. Then, we tried a faster ranger implementation to get variable-importance measures and to train larger forests more efficiently. To examine whether we should keep using all the features or just the top-important ones for our tree-based models, we printed out the importance scores from ranger, and implemented a “top-30 features” version that only keeps the 30 most important predictors, to examine whether a smaller number of engineered features could perform better or not. In the ranger model, we set the number of trees to 600 as well as standard settings such as mtry ≈ sqrt(p) and a slightly larger leaf size to help limit overfitting and accelerate implementation speed.
+CatBoost, designed to handle categorical variables well, was trained using label-encoded predictors and tuned for tree depth, learning rate, and number of iterations.
 
-For CatBoost, which is a gradient-boosting model, is used and found useful to deal with categorical predictors. After label encoding the predictors, we fit and trained a multiclass CatBoost model to predict the damage grades. We tuned a few key settings such as tree depth, learning rate, and number of iterations. To evaluate how well this model performed, we looked at overall accuracy, balanced accuracy, and ROC curves for each damage grade class.
-
-For XGBoost, we did a small greedy hyperparameter search rather than using the default settings. On the SMOTE-balanced training data, we searched over a grid of tree depths (max_depth) and learning rate (eta) and checked how each combination performed on a held-out test split. We picked the pair that gives the highest balanced accuracy, and using that best tree depth and learning rate, we fit our XGBoost model with subsample = 0.8 and colsample_bytree = 0.8.
-
-As an additional check, we also created a new version code and experimented with an Isolation Forest algorithm on the numeric predictors to flag extreme outliers. Specifically, Isolation Forest builds many random trees and gives each observation an anomaly score based on how quickly it can be isolated in these trees. We treated the top 2% observations, which have the highest anomaly score, as potential outliers and removed them to create a filtered version of the dataset. We then approached the same workflow and refit the same models on this new dataset to check whether a small number of extreme buildings has a significant impact on our results.
+For XGBoost, we conducted a small grid search over max_depth and learning rate on SMOTE-balanced data, selecting the settings that maximized balanced accuracy. The final model was trained with subsampling and column subsampling to control overfitting. As a robustness check, we also experimented with an Isolation Forest on numeric predictors to flag extreme outliers. Removing the top 2% most anomalous observations, we refit the full set of models to assess how sensitive results were to extreme cases.
 
 ## Results
 
 We evaluated all models on the 20% held-out test set from the SMOTE-balanced and scaled data. The table below summarizes overall accuracy, Cohen's Kappa, and balanced accuracy for each model.
 
-![Figure 1. Comparison Table.](images/comparison_table.png){width="500"} 
+```{r}
+#| echo: false
 
-We are first showing results of the multinomial link GLM (Figure 2). It has an accuracy of 56.1%, which is only 6% higher than random guessing. It also has a Kappa of 0.28 and balanced accuracy around 62.6%. The confusion matrix shows that the GLM model tends to predict the "damage_grade = 2" class too often but struggles to correctly identify the other two classes. The reason GLM is not performing well in here is that the GLM mostly assumes straight-line effects and no rich interactions between variables, so it can't pick up the complex patterns in the building-damage data.
+library(kableExtra)
 
-Next, we are showing results from the baseline random forest model (Figure 3). It has a better overall accurarcy score than GLM. It achieves test accuracy around 78.9%, Kappa around 0.67, and balanced accuracy around 82.6%. Sensitivity for damage_grade = 1 and damage_grade = 3 improves substantially compared with the GLM, although there is still some confusion between damage_grades 2 and 3.
+results_tbl <- tibble::tribble(
+  ~Model, ~Accuracy, ~Kappa, ~BalancedAccuracy,
+  "Multinomial GLM",                0.564, 0.282, 0.626,
+  "Random Forest (randomForest)",   0.789, 0.670, 0.826,
+  "Random Forest (ranger, all vars)", 0.805, 0.695, 0.837,
+  "Random Forest (ranger, top 30)",   0.808, 0.700, 0.840,
+  "CatBoost",                       0.817, 0.715, 0.849,
+  "XGBoost",                        0.827, 0.731, 0.857
+)
 
-![](images/GLM.png){width="199"}
-*Figure 2. Multinomial Link GLM.*
-![](images/RandomForest.png){width="190"}
-*Figure 3. Baseline Random Forest.*
+results_tbl |>
+  kbl(caption = "Table 1: Model Performance Summary") |>
+  kable_styling(full_width = FALSE)
+```
 
-The ranger implementation (Figure 4) improves things a bit further. With all predictors included, ranger reaches accuracy around 80.5% and balanced accuracy around 83.7%. When we restrict ranger to the top 30 most important predictors (Figure 5), performance is almost unchanged with accuracy around 80.8%, balanced accuracy around 84.0%, and a slightly higher Kappa around 0.70). This implies that only a small group of key variables is doing almost all the work, so once those are in the model, adding all the other predictors doesn't really help the accuracy any further.
+The multinomial GLM (Table 2) performs poorly, with 56% accuracy, Kappa = 0.28, and modest balanced accuracy. It overpredicts damage_grade = 2 and fails to separate the other classes because its linear structure cannot capture complex interactions in the data.
 
-![Figure 4. Ranger Implementation](images/ranger.png){width="300"} 
-![Figure 5. Ranger Implementation With Top 30 Predictors](images/ranger_top30.png){width="300"}
+The baseline Random Forest (Table 3) performs much better, reaching ≈79% accuracy, Kappa ≈ 0.67, and balanced accuracy ≈ 83%. It substantially improves sensitivity for classes 1 and 3 compared with the GLM, though some confusion between grades 2 and 3 remains.
 
-This result (Figure 6) shows that CatBoost outperforms the Random Forest models, with accuracy about 81.7%, Kappa around 0.72, and balanced accuracy around 84.9%. Actually, CatBoost handles the many categorical variables very well and can produce more even performance across the three damage_grade classes. The ROC curves also showed reasonably high AUCs for all three damage grades, which means the model did a good job classifying buildings by damage grade.
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
 
-Lastly, we are showing the results from the greedy-tuned XGBoost model (Figure 7). It has the best accuracy score among all models. The confusion matrix show very high sensitivity and specificity for damage_grade = 1 and damage_grade = 2, with a relatively lower but fairly reasonable sensitivity for damage_grade = 3. Also, ROC curves for XGBoost also show strong separation between damage_grade classes. Therefore, we used it to generate damage_grade predictions for all building ID in nepal_test, which we submit as our final set of test predictions.
+library(kableExtra)
+library(dplyr)
 
-![Figure 6. CatBoost](images/Catboost.png){width="300"} 
-![Figure 7. Greedy-tuned XGBoost](images/GreedyTunedXGBoost.png){width="196"}
+one_table <- tribble(
+  ~Accuracy, ~Kappa,
+  0.561,     0.2772
+) |>
+  mutate(
+    `Sensitivity(1)` = 0.6437,
+    `Sensitivity(2)` = 0.8179,
+    `Sensitivity(3)` = 0.0170,
+    `Specificity(1)` = 0.8566,
+    `Specificity(2)` = 0.4132,
+    `Specificity(3)` = 0.9940
+  )
+
+one_table |>
+  kbl(caption = "Table 2: GLM Stats (1,2,3 refers to damage grade)") |>
+  kable_styling(full_width = FALSE)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(kableExtra)
+library(dplyr)
+
+one_table_rf <- tribble(
+  ~Accuracy, ~Kappa,
+  0.7888,    0.6703
+) |>
+  mutate(
+    `Sensitivity(1)` = 0.9264,
+    `Sensitivity(2)` = 0.8313,
+    `Sensitivity(3)` = 0.5376,
+    `Specificity(1)` = 0.9718,
+    `Specificity(2)` = 0.7629,
+    `Specificity(3)` = 0.9259
+  )
+
+one_table_rf |>
+  kbl(caption = "Table 3: Random Forest Stats (1,2,3 refers to damage grade)") |>
+  kable_styling(full_width = FALSE)
+```
+
+The ranger implementation (Table 4) improves things a bit further. With all predictors included, ranger reaches accuracy around 80.5% and balanced accuracy around 83.7%. When we restrict ranger to the top 30 most important predictors (Table 5), performance is almost unchanged with accuracy around 80.8%, balanced accuracy around 84.0%, and a slightly higher Kappa around 0.70). This implies that only a small group of key variables is doing almost all the work, so once those are in the model, adding all the other predictors doesn't really help the accuracy any further.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(kableExtra)
+library(dplyr)
+
+one_table_rf2 <- tribble(
+  ~Accuracy, ~Kappa,
+  0.8055,    0.6954
+) |>
+  mutate(
+    `Sensitivity(1)` = 0.9216,
+    `Sensitivity(2)` = 0.8656,
+    `Sensitivity(3)` = 0.5521,
+    `Specificity(1)` = 0.9788,
+    `Specificity(2)` = 0.7645,
+    `Specificity(3)` = 0.9405
+  )
+
+one_table_rf2 |>
+  kbl(caption = "Table 4: Fast Implementation of Random Forests Stats with all predictors (1,2,3 refer to damage grade)") |>
+  kable_styling(full_width = FALSE)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(kableExtra)
+library(dplyr)
+
+one_table_model <- tribble(
+  ~Accuracy, ~Kappa,
+  0.808,     0.6996
+) |>
+  mutate(
+    `Sensitivity(1)` = 0.9227,
+    `Sensitivity(2)` = 0.8641,
+    `Sensitivity(3)` = 0.5633,
+    `Specificity(1)` = 0.9787,
+    `Specificity(2)` = 0.7699,
+    `Specificity(3)` = 0.9398
+  )
+
+one_table_model |>
+  kbl(caption = "Table 5: Fast Implementation of Random Forests Stats with top 30 predictors (1,2,3 refer to damage grade)") |>
+  kable_styling(full_width = FALSE)
+```
+
+CatBoost (Table 6) outperforms the Random Forest models, achieving ≈81.7% accuracy, Kappa ≈ 0.72, and balanced accuracy ≈ 84.9%. Its strength comes from handling many categorical variables effectively, resulting in more consistent performance across all three damage grades. The ROC curves show high AUC values for each class, indicating strong classification ability.
+
+The greedy-tuned XGBoost model (Table 7) performs best overall, with the highest accuracy and strong sensitivity and specificity for damage grades 1 and 2, and reasonable performance for grade 3. Its ROC curves show clear separation among classes. Because of this superior performance, we used XGBoost to generate the final damage-grade predictions for the nepal_test dataset.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(kableExtra)
+library(dplyr)
+
+one_table_model4 <- tribble(
+  ~Accuracy, ~Kappa,
+  0.8171,    0.7151
+) |>
+  mutate(
+    `Sensitivity(1)` = 0.9282,
+    `Sensitivity(2)` = 0.8557,
+    `Sensitivity(3)` = 0.6067,
+    `Specificity(1)` = 0.9836,
+    `Specificity(2)` = 0.7910,
+    `Specificity(3)` = 0.9313
+  )
+
+one_table_model4 |>
+  kbl(caption = "Table 6: Categorical Boosting Stats (1,2,3 refer to damage grade)") |>
+  kable_styling(full_width = FALSE)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(kableExtra)
+library(dplyr)
+
+one_table_model5 <- tribble(
+  ~Accuracy, ~Kappa,
+  0.8271,    0.7308
+) |>
+  mutate(
+    `Sensitivity(1)` = 0.9280,
+    `Sensitivity(2)` = 0.8682,
+    `Sensitivity(3)` = 0.6261,
+    `Specificity(1)` = 0.9874,
+    `Specificity(2)` = 0.7989,
+    `Specificity(3)` = 0.9352
+  )
+
+one_table_model5 |>
+  kbl(caption = "Table 7: Greedy Tuned XGBoost Stats (1,2,3 refer to damage grade)") |>
+  kable_styling(full_width = FALSE)
+```
 
 In total, our greedy-tuned XGBoost and CatBoost models outperforms the random forest models because boosting builds trees sequentially, where each tree is built focusing and correcting on the errors of the previous trees, instead of just averaging many independent bagged trees like in random forest. This usually allows us to identify more complex patterns in the data. In our case, XGBoost performed better than CatBoost, which is a little bit surprising because CatBoost is a newer gradient boosting algorithm that is usually very strong on data with many categorical variables. The reason is practically-driven instead of theoretical that we spent more efforts tuning XGBoost's key hyperparameters, such as tree depth and learning rate, using greedy search, so it can adapt more closely to the patterns in the training data. However, our CatBoost model was run with mostly default settings and only light tuning, and thus did not reach the same level of accuracy as XGBoost. So this experience shows the importance of careful hyperparameter tuning and model comparison, and we should not assume that a more recent, advanced or fancy algorithm will automatically perform better.
 
 ## Discussions
-
-Below is the comparison table between all the models that we tested:
-
-![](images/Screenshot%202025-11-24%20at%2013.01.47.png){width="458"}
 
 The greedy-tuned XGBoost model performance evaluated using overall accuracy on the held-out test data is 82.8%, and the balanced accuracy is 85.8%, which are both high and extremely satisfactory. The ROC curves of this model also shows excellent class separability, and we can see that AUC for damage grade 1 is 0.993, 0.908 for grade 2, and 0.912 grade 3, with a macro-AUC of 0.937.
 
@@ -98,7 +263,6 @@ We also observed some misclassifications, and the model mostly confuses between 
 
 Also, it would be worthy to point out that we also tried some other methods including but not limiting to GLM, Random Forest, CatBoost, etc. The basic random forest method also yield to a very strong accuracy of around 80%, and so for interpretability purposes one could also use random forest to draw geological conclusions.
 
-![](images/Screenshot%202025-11-21%20at%2019.45.00.png){width="421"}
+![](images/Screenshot%202025-11-21%20at%2019.45.00.png){width="314"}
 
 After refitting all models after removing the potential outliers by Isolation Forest, the main performance metrics changed only slightly. The XGBoost model still had the best accuracy and balanced accuracy, and the relative ranking of models stayed the same. This suggests that our conclusions are not being mastered by a handful of extreme buildings/outliers, and that the original results based on the full SMOTE-balanced dataset are fairly robust.
-
