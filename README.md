@@ -1,2 +1,5 @@
 # STA521-Final-Project
-This is the final project repo for STA521 at Duke.
+This is the final project repo for STA521 at Duke. The project is joint work 
+with Sicheng Zhang and Zixuan Lin at Duke University Department of Statistical 
+Science. Go Duke!
+![Duke Statistical Science Logo](images/StatSciLogo.jpg)
