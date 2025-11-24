@@ -2,11 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<<<<<<< HEAD
-<meta name="generator" content="quarto-1.4.554">
-=======
 <meta name="generator" content="quarto-1.4.555">
->>>>>>> 187984de2319042dd32e0a5ebf5c6a041d7ddcae
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -104,17 +100,20 @@ ul.task-list li input[type="checkbox"] {
 <section id="results" class="level2">
 <h2 class="anchored" data-anchor-id="results">Results</h2>
 <p>We evaluated all models on the 20% held-out test set from the SMOTE-balanced and scaled data. The table below summarizes overall accuracy, Cohen’s Kappa, and balanced accuracy for each model.</p>
-<p><img src="images/comparison_table.png" class="img-fluid" width="500"></p>
-<p>We are first showing results of the multinomial link GLM. It has an accuracy of 56.1%, which is only 6% higher than random guessing. It also has a Kappa of 0.28 and balanced accuracy around 62.6%. The confusion matrix shows that the GLM model tends to predict the “damage_grade = 2” class too often but struggles to correctly identify the other two classes. The reason GLM is not performing well in here is that the GLM mostly assumes straight-line effects and no rich interactions between variables, so it can’t pick up the complex patterns in the building-damage data.</p>
-<p><img src="images/Screenshot%202025-11-21%20at%2019.31.34.png" class="img-fluid" width="199"></p>
-<p>Next, we are showing results from the baseline random forest model. It has a better overall accurarcy score than GLM. It achieves test accuracy around 78.9%, Kappa around 0.67, and balanced accuracy around 82.6%. Sensitivity for damage_grade = 1 and damage_grade = 3 improves substantially compared with the GLM, although there is still some confusion between damage_grades 2 and 3.</p>
-<p><img src="images/Screenshot%202025-11-21%20at%2019.38.13.png" class="img-fluid" width="190"></p>
-<p>The ranger implementation improves things a bit further. With all predictors included, ranger reaches accuracy around 80.5% and balanced accuracy around 83.7%. When we restrict ranger to the top 30 most important predictors, performance is almost unchanged with accuracy around 80.8%, balanced accuracy around 84.0%, and a slightly higher Kappa around 0.70). This implies that only a small group of key variables is doing almost all the work, so once those are in the model, adding all the other predictors doesn’t really help the accuracy any further.</p>
-<p><img src="images/ranger.png" class="img-fluid" width="300"> <img src="images/ranger_top30.png" class="img-fluid" width="300"></p>
-<p>This result shows that CatBoost outperforms the Random Forest models, with accuracy about 81.7%, Kappa around 0.72, and balanced accuracy around 84.9%. Actually, CatBoost handles the many categorical variables very well and can produce more even performance across the three damage_grade classes. The ROC curves also showed reasonably high AUCs for all three damage grades, which means the model did a good job classifying buildings by damage grade.</p>
-<p><img src="images/Catboost.png" class="img-fluid" width="300"></p>
-<p>Lastly, we are showing the results from the greedy-tuned XGBoost model. It has the best accuracy score among all models. The confusion matrix show very high sensitivity and specificity for damage_grade = 1 and damage_grade = 2, with a relatively lower but fairly reasonable sensitivity for damage_grade = 3. Also, ROC curves for XGBoost also show strong separation between damage_grade classes. Therefore, we used it to generate damage_grade predictions for all building ID in nepal_test, which we submit as our final set of test predictions.</p>
-<p><img src="images/Screenshot%202025-11-21%20at%2019.42.53.png" class="img-fluid" width="196"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/comparison_table.png" class="img-fluid figure-img" width="500"></p>
+<figcaption>Figure 1. Comparison Table.</figcaption>
+</figure>
+</div>
+<p>We are first showing results of the multinomial link GLM (Figure 2). It has an accuracy of 56.1%, which is only 6% higher than random guessing. It also has a Kappa of 0.28 and balanced accuracy around 62.6%. The confusion matrix shows that the GLM model tends to predict the “damage_grade = 2” class too often but struggles to correctly identify the other two classes. The reason GLM is not performing well in here is that the GLM mostly assumes straight-line effects and no rich interactions between variables, so it can’t pick up the complex patterns in the building-damage data.</p>
+<p>Next, we are showing results from the baseline random forest model (Figure 3). It has a better overall accurarcy score than GLM. It achieves test accuracy around 78.9%, Kappa around 0.67, and balanced accuracy around 82.6%. Sensitivity for damage_grade = 1 and damage_grade = 3 improves substantially compared with the GLM, although there is still some confusion between damage_grades 2 and 3.</p>
+<p><img src="images/GLM.png" class="img-fluid" width="199"> <em>Figure 2. Multinomial Link GLM.</em> <img src="images/RandomForest.png" class="img-fluid" width="190"> <em>Figure 3. Baseline Random Forest.</em></p>
+<p>The ranger implementation (Figure 4) improves things a bit further. With all predictors included, ranger reaches accuracy around 80.5% and balanced accuracy around 83.7%. When we restrict ranger to the top 30 most important predictors (Figure 5), performance is almost unchanged with accuracy around 80.8%, balanced accuracy around 84.0%, and a slightly higher Kappa around 0.70). This implies that only a small group of key variables is doing almost all the work, so once those are in the model, adding all the other predictors doesn’t really help the accuracy any further.</p>
+<p><img src="images/ranger.png" class="img-fluid" width="300" alt="Figure 4. Ranger Implementation"> <img src="images/ranger_top30.png" class="img-fluid" width="300" alt="Figure 5. Ranger Implementation With Top 30 Predictors"></p>
+<p>This result (Figure 6) shows that CatBoost outperforms the Random Forest models, with accuracy about 81.7%, Kappa around 0.72, and balanced accuracy around 84.9%. Actually, CatBoost handles the many categorical variables very well and can produce more even performance across the three damage_grade classes. The ROC curves also showed reasonably high AUCs for all three damage grades, which means the model did a good job classifying buildings by damage grade.</p>
+<p>Lastly, we are showing the results from the greedy-tuned XGBoost model (Figure 7). It has the best accuracy score among all models. The confusion matrix show very high sensitivity and specificity for damage_grade = 1 and damage_grade = 2, with a relatively lower but fairly reasonable sensitivity for damage_grade = 3. Also, ROC curves for XGBoost also show strong separation between damage_grade classes. Therefore, we used it to generate damage_grade predictions for all building ID in nepal_test, which we submit as our final set of test predictions.</p>
+<p><img src="images/Catboost.png" class="img-fluid" width="300" alt="Figure 6. CatBoost"> <img src="images/GreedyTunedXGBoost.png" class="img-fluid" width="196" alt="Figure 7. Greedy-tuned XGBoost"></p>
 <p>In total, our greedy-tuned XGBoost and CatBoost models outperforms the random forest models because boosting builds trees sequentially, where each tree is built focusing and correcting on the errors of the previous trees, instead of just averaging many independent bagged trees like in random forest. This usually allows us to identify more complex patterns in the data. In our case, XGBoost performed better than CatBoost, which is a little bit surprising because CatBoost is a newer gradient boosting algorithm that is usually very strong on data with many categorical variables. The reason is practically-driven instead of theoretical that we spent more efforts tuning XGBoost’s key hyperparameters, such as tree depth and learning rate, using greedy search, so it can adapt more closely to the patterns in the training data. However, our CatBoost model was run with mostly default settings and only light tuning, and thus did not reach the same level of accuracy as XGBoost. So this experience shows the importance of careful hyperparameter tuning and model comparison, and we should not assume that a more recent, advanced or fancy algorithm will automatically perform better.</p>
 </section>
 <section id="discussions" class="level2">
@@ -125,7 +124,7 @@ ul.task-list li input[type="checkbox"] {
 <p>We also observed some misclassifications, and the model mostly confuses between closeby classes. However, the minor misclassification is acceptable especially considering the complexity of real-world situations and likelihood of overfitting. In conclusion, the fitted model discriminates very well overall, as we can see from the sensitivity, specificity, etc. of every classes, showing that the model have the great potential to be practically used for real-world damagegrade prediction.</p>
 <p>Also, it would be worthy to point out that we also tried some other methods including but not limiting to GLM, Random Forest, CatBoost, etc. The basic random forest method also yield to a very strong accuracy of around 80%, and so for interpretability purposes one could also use random forest to draw geological conclusions.</p>
 <p><img src="images/Screenshot%202025-11-21%20at%2019.45.00.png" class="img-fluid" width="421"></p>
-<p>one paragraph why removing outliers does not improve?</p>
+<p>After refitting all models after removing the potential outliers by Isolation Forest, the main performance metrics changed only slightly. The XGBoost model still had the best accuracy and balanced accuracy, and the relative ranking of models stayed the same. This suggests that our conclusions are not being mastered by a handful of extreme buildings/outliers, and that the original results based on the full SMOTE-balanced dataset are fairly robust.</p>
 </section>
 
 </main>
