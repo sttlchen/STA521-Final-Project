@@ -1,0 +1,101 @@
+---
+title: "CatBoost_Only_Version"
+output: html_document
+date: "2025-11-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(catboost)
+library(caret)
+
+set.seed(521)
+
+# 1. Use the existing train / test from your script -------------------
+# (these come from: idx_train <- createDataPartition(nepal_smote_scaled$damage_grade, ...))
+train_cb <- train
+test_cb  <- test
+
+# Make sure damage_grade is a factor with consistent levels
+train_cb$damage_grade <- factor(train_cb$damage_grade, levels = c("1","2","3"))
+test_cb$damage_grade  <- factor(test_cb$damage_grade,
+                                levels = levels(train_cb$damage_grade))
+
+# 2. Define predictor columns and numeric vs categorical --------------
+# numeric_cols is already defined earlier in your Rmd; we reuse it
+pred_cols <- setdiff(names(train_cb), "damage_grade")
+
+num_feats <- intersect(pred_cols, numeric_cols)
+cat_feats <- setdiff(pred_cols, num_feats)   # everything else treated as categorical
+
+# 3. Build X and y for CatBoost --------------------------------------
+X_train <- train_cb[, pred_cols, drop = FALSE]
+X_test  <- test_cb[,  pred_cols, drop = FALSE]
+
+# CatBoost wants targets as 0,1,2
+y_train_num <- as.integer(train_cb$damage_grade) - 1
+y_test_num  <- as.integer(test_cb$damage_grade)  - 1
+
+# indices (1-based) of categorical features in X_train
+cat_feature_idx <- which(colnames(X_train) %in% cat_feats)
+
+# Pools for CatBoost
+train_pool <- catboost.load_pool(
+  data         = X_train,
+  label        = y_train_num,
+  cat_features = cat_feature_idx
+)
+
+test_pool <- catboost.load_pool(
+  data         = X_test,
+  label        = y_test_num,
+  cat_features = cat_feature_idx
+)
+
+# 4. Train CatBoost model --------------------------------------------
+cat_params <- list(
+  loss_function = "MultiClass",
+  eval_metric   = "MultiClass",
+  iterations    = 1500,
+  learning_rate = 0.08,
+  depth         = 9,
+  l2_leaf_reg   = 5,
+  bagging_temperature = 1,
+  rsm          = 0.8,
+  random_seed  = 521,
+  od_type      = "Iter",
+  od_wait      = 40
+)
+
+cat_model <- catboost.train(
+  learn_pool = train_pool,
+  test_pool  = test_pool,
+  params     = cat_params
+)
+
+# 5. Predictions + confusion matrix ----------------------------------
+pred_prob_cat <- catboost.predict(
+  model = cat_model,
+  pool  = test_pool,
+  prediction_type = "Probability"
+)
+
+# For multiclass, CatBoost returns an n x 3 matrix of probs
+pred_idx0 <- max.col(pred_prob_cat) - 1  # 0,1,2
+
+dg_levels <- levels(train_cb$damage_grade)  # c("1","2","3")
+pred_cat  <- factor(dg_levels[pred_idx0 + 1], levels = dg_levels)
+
+cm_cat <- confusionMatrix(pred_cat, test_cb$damage_grade)
+cm_cat
+
+cat_metrics <- data.frame(
+  Accuracy         = cm_cat$overall["Accuracy"],
+  Kappa            = cm_cat$overall["Kappa"],
+  BalancedAccuracy = mean(cm_cat$byClass[, "Balanced Accuracy"])
+)
+cat_metrics
+```
