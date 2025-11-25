@@ -61,7 +61,9 @@ For tree-based models (Random Forest, CatBoost, XGBoost), we used the full engin
 
 CatBoost, designed to handle categorical variables well, was trained using label-encoded predictors and tuned for tree depth, learning rate, and number of iterations.
 
-For XGBoost, we conducted a small grid search over max_depth and learning rate on SMOTE-balanced data, selecting the settings that maximized balanced accuracy. The final model was trained with subsampling and column subsampling to control overfitting. As a robustness check, we also experimented with an Isolation Forest on numeric predictors to flag extreme outliers. Removing the top 2% most anomalous observations, we refit the full set of models to assess how sensitive results were to extreme cases.
+For XGBoost, we conducted a small greedy hyperparameter search over max_depth and learning rate on SMOTE-balanced data and checked how each combination performed on a held-out test split, selecting the pairs that maximized balanced accuracy. Using that best tree depth and learning rate, we fit our XGBoost model with subsample = 0.8 and colsample_bytree = 0.8 to avoid overfitting. 
+
+As a robustness check, we also experimented with an Isolation Forest on numeric predictors to flag extreme outliers. Removing the top 2% most anomalous observations, we refit the full set of models to assess how sensitive results were to extreme cases.
 
 ## Results
 
@@ -87,9 +89,9 @@ results_tbl |>
   kable_styling(full_width = FALSE)
 ```
 
-The multinomial GLM (Table 2) performs poorly, with 56% accuracy, Kappa = 0.28, and modest balanced accuracy. It overpredicts damage_grade = 2 and fails to separate the other classes because its linear structure cannot capture complex interactions in the data.
+We are first showing results of the multinomial link GLM. It has an accuracy of 56.1%, which is only 6% higher than random guessing. It also has a Kappa of 0.28 and balanced accuracy around 62.6%. The confusion matrix shows that the GLM model tends to predict the “damage_grade = 2” class too often but struggles to correctly identify the other two classes. The reason GLM is not performing well in here is that the GLM mostly assumes straight-line effects and no rich interactions between variables, so it can’t pick up the complex patterns in the building-damage data.
 
-The baseline Random Forest (Table 3) performs much better, reaching ≈79% accuracy, Kappa ≈ 0.67, and balanced accuracy ≈ 83%. It substantially improves sensitivity for classes 1 and 3 compared with the GLM, though some confusion between grades 2 and 3 remains.
+The baseline Random Forest (Table 3) performs much better, reaching ≈78.9% accuracy, Kappa ≈ 0.67, and balanced accuracy ≈ 82.6%. It substantially improves sensitivity for classes 1 and 3 compared with the GLM, though some confusion between damage_grades 2 and 3 remains.
 
 ```{r}
 #| echo: false
@@ -197,9 +199,9 @@ one_table_model |>
   kable_styling(full_width = FALSE)
 ```
 
-CatBoost (Table 6) outperforms the Random Forest models, achieving ≈81.7% accuracy, Kappa ≈ 0.72, and balanced accuracy ≈ 84.9%. Its strength comes from handling many categorical variables effectively, resulting in more consistent performance across all three damage grades. The ROC curves show high AUC values for each class, indicating strong classification ability.
+CatBoost (Table 6) outperforms the Random Forest models, achieving ≈81.7% accuracy, Kappa ≈ 0.72, and balanced accuracy ≈ 84.9%. Actually, CatBoost handles the many categorical variables very well and can produce more even performance across the three damage_grade classes. The ROC curves show high AUC values for each class, indicating strong classification ability.
 
-The greedy-tuned XGBoost model (Table 7) performs best overall, with the highest accuracy and strong sensitivity and specificity for damage grades 1 and 2, and reasonable performance for grade 3. Its ROC curves show clear separation among classes. Because of this superior performance, we used XGBoost to generate the final damage-grade predictions for the nepal_test dataset.
+The greedy-tuned XGBoost model (Table 7) performs best overall, which has the best accuracy score among all models. The confusion matrix show very high sensitivity and specificity for damage_grade = 1 and 2, with a relatively lower but fairly reasonable sensitivity for damage_grade = 3. Also, ROC curves for XGBoost also show strong separation between damage_grade classes. Therefore, we used it to generate damage_grade predictions for all building ID in nepal_test.
 
 ```{r}
 #| echo: false

@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.4.554">
+<meta name="generator" content="quarto-1.4.555">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -34,7 +34,9 @@ ul.task-list li input[type="checkbox"] {
 <link href="Write_up_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="Write_up_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script src="Write_up_files/libs/kePrint-0.0.1/kePrint.js"></script>
+
 <link href="Write_up_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+
 <style>
   /* Reduce paragraph spacing */
   p {
@@ -111,15 +113,18 @@ ul.task-list li input[type="checkbox"] {
 <p>For the multinomial GLM, we selected predictors based on variation and interpretability, removing invariant or near-constant features. The final set included variables reflecting structural and geographic characteristics (e.g., age, area_percentage, height_percentage, floor count, geo-levels, land_surface_condition, roof_type, and others). These features directly describe building attributes that plausibly affect damage severity.</p>
 <p>For tree-based models (Random Forest, CatBoost, XGBoost), we used the full engineered feature set to maximize predictive power. Although these models sacrifice interpretability, they typically achieve higher accuracy because they aggregate information across many decision trees. Within Random Forest, we first fit a baseline model using the randomForest package, then used the faster ranger implementation to extract variable importance and to train larger forests efficiently. We also built a “top-30 features” version to test whether limiting the model to the most important predictors improved performance.</p>
 <p>CatBoost, designed to handle categorical variables well, was trained using label-encoded predictors and tuned for tree depth, learning rate, and number of iterations.</p>
-<p>For XGBoost, we conducted a small grid search over max_depth and learning rate on SMOTE-balanced data, selecting the settings that maximized balanced accuracy. The final model was trained with subsampling and column subsampling to control overfitting. As a robustness check, we also experimented with an Isolation Forest on numeric predictors to flag extreme outliers. Removing the top 2% most anomalous observations, we refit the full set of models to assess how sensitive results were to extreme cases.</p>
+<p>For XGBoost, we conducted a small greedy hyperparameter search over max_depth and learning rate on SMOTE-balanced data and checked how each combination performed on a held-out test split, selecting the pairs that maximized balanced accuracy. Using that best tree depth and learning rate, we fit our XGBoost model with subsample = 0.8 and colsample_bytree = 0.8 to avoid overfitting.</p>
+<p>As a robustness check, we also experimented with an Isolation Forest on numeric predictors to flag extreme outliers. Removing the top 2% most anomalous observations, we refit the full set of models to assess how sensitive results were to extreme cases.</p>
 </section>
 <section id="results" class="level2">
 <h2 class="anchored" data-anchor-id="results">Results</h2>
 <p>We evaluated all models on the 20% held-out test set from the SMOTE-balanced and scaled data. The table below summarizes overall accuracy, Cohen’s Kappa, and balanced accuracy for each model.</p>
 <div class="cell">
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'kableExtra' was built under R version 4.4.3</code></pre>
+</div>
 <div class="cell-output-display">
-<div>
-<table class="table table-sm table-striped small" data-quarto-postprocess="true">
+<table class="table caption-top table-sm table-striped small" data-quarto-postprocess="true">
 <caption>Table 1: Model Performance Summary</caption>
 <thead>
 <tr class="header">
@@ -172,13 +177,11 @@ ul.task-list li input[type="checkbox"] {
 
 </div>
 </div>
-</div>
-<p>The multinomial GLM (Table 2) performs poorly, with&nbsp;56% accuracy,&nbsp;Kappa = 0.28, and modest balanced accuracy. It overpredicts damage_grade = 2 and fails to separate the other classes because its linear structure cannot capture complex interactions in the data.</p>
-<p>The baseline Random Forest (Table 3) performs much better, reaching&nbsp;≈79% accuracy,&nbsp;Kappa ≈ 0.67, and&nbsp;balanced accuracy ≈ 83%. It substantially improves sensitivity for classes 1 and 3 compared with the GLM, though some confusion between grades 2 and 3 remains.</p>
+<p>We are first showing results of the multinomial link GLM. It has an accuracy of 56.1%, which is only 6% higher than random guessing. It also has a Kappa of 0.28 and balanced accuracy around 62.6%. The confusion matrix shows that the GLM model tends to predict the “damage_grade = 2” class too often but struggles to correctly identify the other two classes. The reason GLM is not performing well in here is that the GLM mostly assumes straight-line effects and no rich interactions between variables, so it can’t pick up the complex patterns in the building-damage data.</p>
+<p>The baseline Random Forest (Table 3) performs much better, reaching&nbsp;≈78.9% accuracy,&nbsp;Kappa ≈ 0.67, and&nbsp;balanced accuracy ≈ 82.6%. It substantially improves sensitivity for classes 1 and 3 compared with the GLM, though some confusion between damage_grades 2 and 3 remains.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div>
-<table class="table table-sm table-striped small" data-quarto-postprocess="true">
+<table class="table caption-top table-sm table-striped small" data-quarto-postprocess="true">
 <caption>Table 2: GLM Stats (1,2,3 refers to damage grade)</caption>
 <thead>
 <tr class="header">
@@ -209,11 +212,9 @@ ul.task-list li input[type="checkbox"] {
 
 </div>
 </div>
-</div>
 <div class="cell">
 <div class="cell-output-display">
-<div>
-<table class="table table-sm table-striped small" data-quarto-postprocess="true">
+<table class="table caption-top table-sm table-striped small" data-quarto-postprocess="true">
 <caption>Table 3: Random Forest Stats (1,2,3 refers to damage grade)</caption>
 <thead>
 <tr class="header">
@@ -244,12 +245,10 @@ ul.task-list li input[type="checkbox"] {
 
 </div>
 </div>
-</div>
 <p>The ranger implementation (Table 4) improves things a bit further. With all predictors included, ranger reaches accuracy around 80.5% and balanced accuracy around 83.7%. When we restrict ranger to the top 30 most important predictors (Table 5), performance is almost unchanged with accuracy around 80.8%, balanced accuracy around 84.0%, and a slightly higher Kappa around 0.70). This implies that only a small group of key variables is doing almost all the work, so once those are in the model, adding all the other predictors doesn’t really help the accuracy any further.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div>
-<table class="table table-sm table-striped small" data-quarto-postprocess="true">
+<table class="table caption-top table-sm table-striped small" data-quarto-postprocess="true">
 <caption>Table 4: Fast Implementation of Random Forests Stats with all predictors (1,2,3 refer to damage grade)</caption>
 <thead>
 <tr class="header">
@@ -280,11 +279,9 @@ ul.task-list li input[type="checkbox"] {
 
 </div>
 </div>
-</div>
 <div class="cell">
 <div class="cell-output-display">
-<div>
-<table class="table table-sm table-striped small" data-quarto-postprocess="true">
+<table class="table caption-top table-sm table-striped small" data-quarto-postprocess="true">
 <caption>Table 5: Fast Implementation of Random Forests Stats with top 30 predictors (1,2,3 refer to damage grade)</caption>
 <thead>
 <tr class="header">
@@ -315,13 +312,11 @@ ul.task-list li input[type="checkbox"] {
 
 </div>
 </div>
-</div>
-<p>CatBoost (Table 6) outperforms the Random Forest models, achieving&nbsp;≈81.7% accuracy,&nbsp;Kappa ≈ 0.72, and&nbsp;balanced accuracy ≈ 84.9%. Its strength comes from handling many categorical variables effectively, resulting in more consistent performance across all three damage grades. The ROC curves show high AUC values for each class, indicating strong classification ability.</p>
-<p>The greedy-tuned XGBoost model (Table 7) performs best overall, with the highest accuracy and strong sensitivity and specificity for damage grades 1 and 2, and reasonable performance for grade 3. Its ROC curves show clear separation among classes. Because of this superior performance, we used XGBoost to generate the final damage-grade predictions for the&nbsp;nepal_test&nbsp;dataset.</p>
+<p>CatBoost (Table 6) outperforms the Random Forest models, achieving&nbsp;≈81.7% accuracy,&nbsp;Kappa ≈ 0.72, and&nbsp;balanced accuracy ≈ 84.9%. Actually, CatBoost handles the many categorical variables very well and can produce more even performance across the three damage_grade classes. The ROC curves show high AUC values for each class, indicating strong classification ability.</p>
+<p>The greedy-tuned XGBoost model (Table 7) performs best overall, which has the best accuracy score among all models. The confusion matrix show very high sensitivity and specificity for damage_grade = 1 and 2, with a relatively lower but fairly reasonable sensitivity for damage_grade = 3. Also, ROC curves for XGBoost also show strong separation between damage_grade classes. Therefore, we used it to generate damage_grade predictions for all building ID in nepal_test.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div>
-<table class="table table-sm table-striped small" data-quarto-postprocess="true">
+<table class="table caption-top table-sm table-striped small" data-quarto-postprocess="true">
 <caption>Table 6: Categorical Boosting Stats (1,2,3 refer to damage grade)</caption>
 <thead>
 <tr class="header">
@@ -352,11 +347,9 @@ ul.task-list li input[type="checkbox"] {
 
 </div>
 </div>
-</div>
 <div class="cell">
 <div class="cell-output-display">
-<div>
-<table class="table table-sm table-striped small" data-quarto-postprocess="true">
+<table class="table caption-top table-sm table-striped small" data-quarto-postprocess="true">
 <caption>Table 7: Greedy Tuned XGBoost Stats (1,2,3 refer to damage grade)</caption>
 <thead>
 <tr class="header">
@@ -385,7 +378,6 @@ ul.task-list li input[type="checkbox"] {
 </table>
 
 
-</div>
 </div>
 </div>
 <p>In total, our greedy-tuned XGBoost and CatBoost models outperforms the random forest models because boosting builds trees sequentially, where each tree is built focusing and correcting on the errors of the previous trees, instead of just averaging many independent bagged trees like in random forest. This usually allows us to identify more complex patterns in the data. In our case, XGBoost performed better than CatBoost, which is a little bit surprising because CatBoost is a newer gradient boosting algorithm that is usually very strong on data with many categorical variables. The reason is practically-driven instead of theoretical that we spent more efforts tuning XGBoost’s key hyperparameters, such as tree depth and learning rate, using greedy search, so it can adapt more closely to the patterns in the training data. However, our CatBoost model was run with mostly default settings and only light tuning, and thus did not reach the same level of accuracy as XGBoost. So this experience shows the importance of careful hyperparameter tuning and model comparison, and we should not assume that a more recent, advanced or fancy algorithm will automatically perform better.</p>
