@@ -61,9 +61,7 @@ For tree-based models (Random Forest, CatBoost, XGBoost), we used the full engin
 
 CatBoost, designed to handle categorical variables well, was trained using label-encoded predictors and tuned for tree depth, learning rate, and number of iterations.
 
-For XGBoost, we conducted a small greedy hyperparameter search over max_depth and learning rate on SMOTE-balanced data and checked how each combination performed on a held-out test split, selecting the pairs that maximized balanced accuracy. Using that best tree depth and learning rate, we fit our XGBoost model with subsample = 0.8 and colsample_bytree = 0.8 to avoid overfitting. 
-
-As a robustness check, we also experimented with an Isolation Forest on numeric predictors to flag extreme outliers. Removing the top 2% most anomalous observations, we refit the full set of models to assess how sensitive results were to extreme cases.
+For XGBoost, we conducted a small greedy hyperparameter search over max_depth and learning rate on SMOTE-balanced data and checked how each combination performed on a held-out test split, selecting the pairs that maximized balanced accuracy. Using that best tree depth and learning rate, we fit our XGBoost model with subsample = 0.8 and colsample_bytree = 0.8 to avoid overfitting.
 
 ## Results
 
@@ -265,6 +263,6 @@ We also observed some misclassifications, and the model mostly confuses between 
 
 Also, it would be worthy to point out that we also tried some other methods including but not limiting to GLM, Random Forest, CatBoost, etc. The basic random forest method also yield to a very strong accuracy of around 80%, and so for interpretability purposes one could also use random forest to draw geological conclusions.
 
-![](images/Screenshot%202025-11-21%20at%2019.45.00.png){width="314"}
+If we would have the chance to approach this case study again, we will ask for more information of geological id variables because they seem to be the most relevant with damage grade of buildings, yet due to overwhelming amount of levels, it is hard to utilize them in prediction tasks, especially in linear models. Though ensemble methods deal with high dimensional very well, the amount of trees and their depths required to make meaningful prediction is demanding. Thus, if we have more infromation, we could have redesign the variables so that they are easier to work with.
 
-After refitting all models after removing the potential outliers by Isolation Forest, the main performance metrics changed only slightly. The XGBoost model still had the best accuracy and balanced accuracy, and the relative ranking of models stayed the same. This suggests that our conclusions are not being mastered by a handful of extreme buildings/outliers, and that the original results based on the full SMOTE-balanced dataset are fairly robust.
+![](images/Screenshot%202025-11-21%20at%2019.45.00.png){width="314"}
