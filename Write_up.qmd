@@ -100,16 +100,16 @@ library(kableExtra)
 library(dplyr)
 
 one_table <- tribble(
-  ~Accuracy, ~Kappa,
-  0.561,     0.2772
+  ~Accu, ~Kappa,
+  0.564,     0.282
 ) |>
   mutate(
-    `Sensitivity(1)` = 0.6437,
-    `Sensitivity(2)` = 0.8179,
-    `Sensitivity(3)` = 0.0170,
-    `Specificity(1)` = 0.8566,
-    `Specificity(2)` = 0.4132,
-    `Specificity(3)` = 0.9940
+    `Recall(1)` = 0.644,
+    `Recall(2)` = 0.818,
+    `Recall(3)` = 0.017,
+    `Specificity(1)` = 0.857,
+    `Specificity(2)` = 0.413,
+    `Specificity(3)` = 0.994
   )
 
 one_table |>
@@ -126,16 +126,16 @@ library(kableExtra)
 library(dplyr)
 
 one_table_rf <- tribble(
-  ~Accuracy, ~Kappa,
-  0.7888,    0.6703
+  ~Accu, ~Kappa,
+  0.789,    0.6703
 ) |>
   mutate(
-    `Sensitivity(1)` = 0.9264,
-    `Sensitivity(2)` = 0.8313,
-    `Sensitivity(3)` = 0.5376,
-    `Specificity(1)` = 0.9718,
-    `Specificity(2)` = 0.7629,
-    `Specificity(3)` = 0.9259
+    `Recall(1)` = 0.926,
+    `Recall(2)` = 0.831,
+    `Recall(3)` = 0.538,
+    `Specificity(1)` = 0.972,
+    `Specificity(2)` = 0.763,
+    `Specificity(3)` = 0.926
   )
 
 one_table_rf |>
@@ -154,16 +154,16 @@ library(kableExtra)
 library(dplyr)
 
 one_table_rf2 <- tribble(
-  ~Accuracy, ~Kappa,
-  0.8055,    0.6954
+  ~Accu, ~Kappa,
+  0.805,    0.670
 ) |>
   mutate(
-    `Sensitivity(1)` = 0.9216,
-    `Sensitivity(2)` = 0.8656,
-    `Sensitivity(3)` = 0.5521,
-    `Specificity(1)` = 0.9788,
-    `Specificity(2)` = 0.7645,
-    `Specificity(3)` = 0.9405
+    `Recall(1)` = 0.922,
+    `Recall(2)` = 0.866,
+    `Recall(3)` = 0.552,
+    `Specificity(1)` = 0.979,
+    `Specificity(2)` = 0.765,
+    `Specificity(3)` = 0.941
   )
 
 one_table_rf2 |>
@@ -180,16 +180,16 @@ library(kableExtra)
 library(dplyr)
 
 one_table_model <- tribble(
-  ~Accuracy, ~Kappa,
-  0.808,     0.6996
+  ~Accu, ~Kappa,
+  0.808,     0.700
 ) |>
   mutate(
-    `Sensitivity(1)` = 0.9227,
-    `Sensitivity(2)` = 0.8641,
-    `Sensitivity(3)` = 0.5633,
-    `Specificity(1)` = 0.9787,
-    `Specificity(2)` = 0.7699,
-    `Specificity(3)` = 0.9398
+    `Recall(1)` = 0.923,
+    `Recall(2)` = 0.864,
+    `Recall(3)` = 0.563,
+    `Specificity(1)` = 0.979,
+    `Specificity(2)` = 0.770,
+    `Specificity(3)` = 0.940
   )
 
 one_table_model |>
@@ -199,7 +199,7 @@ one_table_model |>
 
 CatBoost (Table 6) outperforms the Random Forest models, achieving ≈81.7% accuracy, Kappa ≈ 0.72, and balanced accuracy ≈ 84.9%. Actually, CatBoost handles the many categorical variables very well and can produce more even performance across the three damage_grade classes. The ROC curves show high AUC values for each class, indicating strong classification ability.
 
-The greedy-tuned XGBoost model (Table 7) performs best overall, which has the best accuracy score among all models. The confusion matrix show very high sensitivity and specificity for damage_grade = 1 and 2, with a relatively lower but fairly reasonable sensitivity for damage_grade = 3. Also, ROC curves for XGBoost also show strong separation between damage_grade classes. Therefore, we used it to generate damage_grade predictions for all building ID in nepal_test.
+The greedy-tuned XGBoost model (Table 7) performs best overall, which has the best accuracy score among all models. The table show very high recall and specificity for damage_grade = 1 and 2, with a relatively lower but fairly reasonable recall for damage_grade = 3. Also, ROC curves from the final plot for XGBoost also show strong separation between damage_grade classes. Therefore, we used it to generate damage_grade predictions for all building ID in nepal_test.
 
 ```{r}
 #| echo: false
@@ -210,16 +210,16 @@ library(kableExtra)
 library(dplyr)
 
 one_table_model4 <- tribble(
-  ~Accuracy, ~Kappa,
-  0.8171,    0.7151
+  ~Accu, ~Kappa,
+  0.817, 0.715
 ) |>
   mutate(
-    `Sensitivity(1)` = 0.9282,
-    `Sensitivity(2)` = 0.8557,
-    `Sensitivity(3)` = 0.6067,
-    `Specificity(1)` = 0.9836,
-    `Specificity(2)` = 0.7910,
-    `Specificity(3)` = 0.9313
+    `Recall(1)` = 0.928,
+    `Recall(2)` = 0.856,
+    `Recall(3)` = 0.607,
+    `Specificity(1)` = 0.984,
+    `Specificity(2)` = 0.791,
+    `Specificity(3)` = 0.931
   )
 
 one_table_model4 |>
@@ -236,16 +236,16 @@ library(kableExtra)
 library(dplyr)
 
 one_table_model5 <- tribble(
-  ~Accuracy, ~Kappa,
-  0.8271,    0.7308
+  ~Accu, ~Kappa,
+  0.827, 0.731
 ) |>
   mutate(
-    `Sensitivity(1)` = 0.9280,
-    `Sensitivity(2)` = 0.8682,
-    `Sensitivity(3)` = 0.6261,
-    `Specificity(1)` = 0.9874,
-    `Specificity(2)` = 0.7989,
-    `Specificity(3)` = 0.9352
+    `Recall(1)` = 0.928,
+    `Recall(2)` = 0.868,
+    `Recall(3)` = 0.626,
+    `Specificity(1)` = 0.987,
+    `Specificity(2)` = 0.799,
+    `Specificity(3)` = 0.935
   )
 
 one_table_model5 |>
